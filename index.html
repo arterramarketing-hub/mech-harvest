@@ -77,12 +77,17 @@
   body.touch .char p{min-height:0}
   body.touch .mission{width:250px;padding:12px}
   body.touch .mission p{min-height:0;font-size:10.5px}
-  body.touch #shopgrid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;margin-bottom:12px}
-  body.touch .item{padding:7px 9px;font-size:10.5px}
-  body.touch .item p{min-height:0}
+  body.touch #shopgrid{grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px}
+  body.touch .item{padding:6px 8px;font-size:9.5px;border-radius:6px}
+  body.touch .item h3{font-size:10.5px;margin-bottom:2px}
+  body.touch .item p{min-height:0;margin-bottom:4px;line-height:1.25}
+  body.touch .item .buy{padding:4px 0;font-size:10px}
+  body.touch .item .lvl{font-size:8px}
+  body.touch #shophead{margin-bottom:8px}
   body.touch .statline{font-size:12px;margin:5px 0}
-  body.touch #shophead h2{font-size:13px}
-  body.touch #shopcred{font-size:14px}
+  body.touch #shophead h2{font-size:12px}
+  body.touch #shopcred{font-size:13px}
+  body.touch #shop .panel{max-width:560px;padding:12px 12px}
 
   .glass{background:linear-gradient(155deg, rgba(58,74,106,.34), rgba(14,20,34,.28));
     backdrop-filter:blur(24px) saturate(180%) brightness(1.12);
@@ -117,6 +122,21 @@
   .slot.locked::after{content:'🔒';position:absolute;top:2px;right:4px;font-size:10px}
   .slot .mini{position:absolute;bottom:3px;left:6px;right:6px;height:3px;background:rgba(6,10,16,.7)}
   .slot .mini i{display:block;height:100%;background:var(--cyan)}
+
+  /* hull-critical warning */
+  #critwarn{position:absolute;top:17%;left:50%;display:none;pointer-events:none;white-space:nowrap;
+    font-size:21px;font-weight:bold;letter-spacing:6px;color:#ff4b4b;
+    text-shadow:2px 0 rgba(75,224,232,.8),-2px 0 rgba(255,75,75,.9),0 0 22px rgba(255,40,40,.7);
+    animation:critglitch .48s steps(2,jump-none) infinite}
+  body.touch #critwarn{font-size:12px;letter-spacing:3px;top:20%}
+  @keyframes critglitch{
+    0%  {transform:translateX(-50%) skewX(0deg);opacity:1}
+    20% {transform:translateX(calc(-50% + 4px)) skewX(-4deg);opacity:.65}
+    40% {transform:translateX(calc(-50% - 3px)) skewX(2deg);opacity:1;
+         text-shadow:-3px 0 rgba(75,224,232,.9),3px 0 rgba(255,75,75,.9),0 0 26px rgba(255,40,40,.8)}
+    60% {transform:translateX(-50%);opacity:.85;clip-path:inset(38% 0 22% 0)}
+    80% {transform:translateX(calc(-50% + 2px));opacity:1;clip-path:none}
+  }
 
   /* toasts */
   #toasts{position:fixed;top:70px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:30;pointer-events:none;max-width:320px}
@@ -225,6 +245,7 @@
     <div class="bar"><div class="fill" id="shieldfill"></div></div>
   </div>
   <div id="slots"></div>
+  <div id="critwarn" class="mono">⚠ HULL CRITICAL ⚠</div>
 </div>
 
 <div id="toasts"></div>
@@ -251,24 +272,30 @@
     <div class="sub">⌂ HOME BASE — PLANETARY MECH SURVIVAL PROTOCOL</div>
     <div id="worldchips"></div>
     <div class="sub mono" id="conqCount"></div>
-    <div class="sub mono" id="resLine" style="color:var(--amber);font-size:14px;margin-bottom:8px"></div>
     <div class="sub mono" id="rationNote" style="color:#7dff9a;display:none">⛽ EMERGENCY FUEL RATION DELIVERED (+40)</div>
-    <div class="controls tOnly" style="display:none">
-      <b>LEFT THUMB</b> — move &nbsp; <b>RIGHT THUMB</b> — aim &amp; fire<br>
-      <b>⬢</b> — shield burst &nbsp; <b>II</b> — pause<br>
-      Drive over <b style="color:var(--amber)">scrap</b> to salvage it — spend it at the depot between rounds.
+    <div style="margin:6px 0 14px">
+      <button class="btn" id="btnControls" style="font-size:11px;padding:6px 16px">ⓘ CONTROLS &amp; BRIEFING</button>
     </div>
-    <div class="controls hideTouch">
-      <b>WASD</b> — move &nbsp; <b>ARROWS</b> — fire all weapons &nbsp; <b>SPACE</b> — shield burst<br>
-      <b>P</b> — pause &nbsp; <b>M</b> — music<br><br>
-      Hostiles drop <b style="color:var(--amber)">nuts &amp; bolts</b> — drive over the scrap to salvage it.<br>
-      Buy new <b style="color:var(--cyan)">weapon attachments</b> at the depot; they all fire together.<br>
-      Level attachments up to unlock <b style="color:#c49bff">combination tech</b>.<br>
-      Kill a world's apex machine to <b style="color:#7dff9a">conquer it — progress is saved</b>.
+    <div id="controlsBox" style="display:none">
+      <div class="controls tOnly" style="display:none">
+        <b>ONE FINGER</b> — drag anywhere to move; weapons <b style="color:var(--cyan)">auto-fire</b> at the nearest hostile<br>
+        <b>⬢</b> — shield burst &nbsp; <b>II</b> — pause<br>
+        Drive over <b style="color:var(--amber)">scrap</b> to salvage it — spend it at the depot between rounds.<br>
+        Kill a world's apex machine to <b style="color:#7dff9a">conquer it — progress is saved</b>.
+      </div>
+      <div class="controls hideTouch">
+        <b>WASD</b> — move &nbsp; <b>ARROWS</b> — fire all weapons &nbsp; <b>SPACE</b> — shield burst<br>
+        <b>P</b> — pause &nbsp; <b>M</b> — music<br><br>
+        Hostiles drop <b style="color:var(--amber)">nuts &amp; bolts</b> — drive over the scrap to salvage it.<br>
+        Buy new <b style="color:var(--cyan)">weapon attachments</b> at the depot; they all fire together.<br>
+        Level attachments up to unlock <b style="color:#c49bff">combination tech</b>.<br>
+        Kill a world's apex machine to <b style="color:#7dff9a">conquer it — progress is saved</b>.
+      </div>
     </div>
     <button class="btn amber" id="btnStart">OPEN HANGAR ⏵</button>
     &nbsp;<button class="btn" id="btnHomeWorld">⌂ HOME PLANET</button>
     &nbsp;<button class="btn" id="btnBuyFuel">⛽ BUY FUEL — 500¢</button>
+    <div class="sub mono" id="resLine" style="color:var(--amber);font-size:14px;margin:18px 0 0"></div>
   </div>
 </div>
 
@@ -341,7 +368,7 @@
     <h1 style="color:#7dff9a">EXTRACTION COMPLETE</h1>
     <div class="sub" id="sumStatus"></div>
     <div class="statline">World: <b id="sumWorld"></b></div>
-    <div class="statline">Pilot: <b id="sumPilot"></b></div>
+    <div class="statline">Mech: <b id="sumPilot"></b></div>
     <div class="statline">Apex machine destroyed: <b id="sumBoss"></b></div>
     <div class="statline">Rounds cleared: <b id="sumRounds"></b></div>
     <div class="statline">Hostiles scrapped: <b id="sumKills"></b></div>
@@ -377,10 +404,12 @@ function resize(){
   cvs.width = Math.round(W*DPR); cvs.height = Math.round(H*DPR);
 }
 addEventListener('resize', resize); resize();
-/* camera zoom — phones pull the camera back so you can see more of the battlefield */
+/* camera zoom — touch devices pull all the way back so the entire planet disc
+   (edges, atmosphere and all) fits on screen and you watch the world turn under you */
+let ZV=1;
 function viewZoom(){
   if(!document.body.classList.contains('touch')) return 1;
-  return clamp(Math.min(W,H)/640, .58, 1);
+  return clamp(Math.min(W,H)/(2*(PR+85)), .3, 1);
 }
 
 const rand = (a,b)=>a+Math.random()*(b-a);
@@ -463,6 +492,8 @@ function sfx(freq, dur, type, vol, slide){
 }
 function noiseHit(dur, vol, type, freq){
   try{
+    if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)();
+    if(!noiseBuf) ensureAC();   // weapon cracks need the noise buffer even before music starts
     if(!AC||!noiseBuf) return;
     const t=AC.currentTime;
     const s=AC.createBufferSource(); s.buffer=noiseBuf;
@@ -544,7 +575,9 @@ function handleTouch(ev){
   document.body.classList.add('touch');
   for(const t of ev.changedTouches){
     if(ev.type==='touchstart'){
-      const stick = t.clientX < innerWidth*.5 ? TOUCH.mv : TOUCH.aim;
+      /* one-finger game: first touch anywhere = movement. weapons auto-aim & auto-fire.
+         (a second finger still gives manual aim override for those who want it) */
+      const stick = TOUCH.mv.id===null ? TOUCH.mv : TOUCH.aim;
       if(stick.id===null){ stick.id=t.identifier; stick.sx=t.clientX; stick.sy=t.clientY; stick.dx=stick.dy=stick.len=0; }
     }
     else if(ev.type==='touchmove'){
@@ -729,20 +762,21 @@ const CONQUER_LINES = {
 };
 
 /* ================= CHARACTERS ================= */
+/* mechs are named for their primary weapon — no separate pilot callsigns */
 const CHARS = [
-  { id:'riot',    name:'RIOT',    wid:'vulcan',  col:'#ff6b4b', icon:'⣿',
+  { id:'riot',    name:'VULCAN',  wid:'vulcan',  col:'#ff6b4b', icon:'⣿',
     desc:'Assault frame built for sustained fire. Rotary autocannon never asks questions.',
     bonusTxt:'+6% MOVE SPEED', mods:{spd:.06} },
-  { id:'lance',   name:'LANCE',   wid:'railgun', col:'#4b9fff', icon:'━',
+  { id:'lance',   name:'RAILGUN', wid:'railgun', col:'#4b9fff', icon:'━',
     desc:'Long-rail sniper frame. One perfect shot is worth a thousand loud ones.',
     bonusTxt:'+6% CRIT CHANCE', mods:{crit:.06} },
-  { id:'hydra',   name:'HYDRA',   wid:'swarm',   col:'#7dff9a', icon:'⌁',
+  { id:'hydra',   name:'SWARM',   wid:'swarm',   col:'#7dff9a', icon:'⌁',
     desc:'Missile-carrier frame. Fire, forget, and watch the sky do the work.',
     bonusTxt:'+15% AMMO REGEN', mods:{regen:.15} },
-  { id:'bastion', name:'BASTION', wid:'aegis',   col:'#4be0e8', icon:'◍',
+  { id:'bastion', name:'AEGIS',   wid:'aegis',   col:'#4be0e8', icon:'◍',
     desc:'Fortress frame. Walks slow, hits walls back. The field does the fighting.',
     bonusTxt:'+35 MAX HULL', mods:{hull:35} },
-  { id:'volt',    name:'VOLT',    wid:'tesla',   col:'#c49bff', icon:'⚡',
+  { id:'volt',    name:'TESLA',   wid:'tesla',   col:'#c49bff', icon:'ϟ',
     desc:'Storm frame. Wired straight into the lightning. Chains never miss twice.',
     bonusTxt:'+10% AMMO REGEN, +3% CRIT', mods:{regen:.1,crit:.03} },
 ];
@@ -781,7 +815,7 @@ const WEAPONS = [
     owned:false, lvl:1, cost:650, upBase:300, rof:.5,   dmg:24, spd:420, drain:9,  cap:100, regen:10, cdT:0 },
   { id:'aegis',   name:'AEGIS',    icon:'◍', desc:'Forcefield that repels & damages. Grows with level.',
     owned:false, lvl:1, cost:550, upBase:280, rof:0,    dmg:26, spd:0,   drain:22, cap:100, regen:13, cdT:0 },
-  { id:'tesla',   name:'TESLA',    icon:'⚡', desc:'Arc lightning chaining between hostiles.',
+  { id:'tesla',   name:'TESLA',    icon:'ϟ', desc:'Arc lightning chaining between hostiles.',
     owned:false, lvl:1, cost:850, upBase:320, rof:.34,  dmg:19, spd:0,   drain:7,  cap:100, regen:12, cdT:0 },
 ];
 const wByid = id => WEAPONS.find(w=>w.id===id);
@@ -1015,6 +1049,19 @@ function aimDir(){
   if(keys['ArrowLeft'])dx-=1; if(keys['ArrowRight'])dx+=1;
   if(keys['ArrowUp'])dy-=1;   if(keys['ArrowDown'])dy+=1;
   if(dx||dy){ const l=Math.hypot(dx,dy); return {x:dx/l, y:dy/l, firing:true}; }
+  /* touch devices: auto-aim & auto-fire at the nearest hostile in view */
+  if(document.body.classList.contains('touch')){
+    let best=null, bd=HORIZON*HORIZON;
+    for(const e of enemies){
+      if(e.dead) continue;
+      const d2=wdist2(e.x,e.y,player.x,player.y);
+      if(d2<bd){ bd=d2; best=e; }
+    }
+    if(best){
+      const dv=wd(best.x,best.y,player.x,player.y), l=Math.hypot(dv.x,dv.y)||1;
+      return {x:dv.x/l, y:dv.y/l, firing:true};
+    }
+  }
   return {x:player.aimx, y:player.aimy, firing:false};
 }
 
@@ -1118,8 +1165,10 @@ function fireWeapons(dt){
           sfx(240,.12,'sawtooth',.04,-100);
         }
       }
-      sfx(rand(820,900)+L*60,.05,'square',.025+L*.004,-500);
-      if(L>=4) sfx(1400,.03,'sine',.015,-400);
+      /* autocannon: noise crack + low body thump instead of a synth beep */
+      noiseHit(.06,.045+L*.006,'bandpass',rand(1400,1900));
+      sfx(rand(150,190),.07,'triangle',.05,-95);
+      if(L>=4) noiseHit(.04,.03,'highpass',5200);
       shake=Math.min(shake+.6+L*.15,5);
     }
     else if(w.id==='railgun'){
@@ -1142,6 +1191,7 @@ function fireWeapons(dt){
             if(hasCombo('detonator') && hits<4){ detonate(e.x,e.y); hits++; }
           }
         }
+        noiseHit(.2,.06,'highpass',2600);
         sfx(1800,.22,'sawtooth',.05,-1200); sfx(90,.25,'sine',.06,-30);
       } else {
         bullets.push({x:px,y:py,vx:a.x*w.spd,vy:a.y*w.spd,dmg:D,r:6,life:1.2,pierce:99,
@@ -1161,8 +1211,11 @@ function fireWeapons(dt){
         }
         sfx(300,.15,'sine',.04,-150);
       }
-      sfx(160-L*10,.25,'sawtooth',.06+L*.008,-120);
-      if(L>=2) sfx(55,.3,'sine',.06,-15);
+      /* railgun: supersonic crack, concussive body, sub-bass thump */
+      noiseHit(.14,.085,'highpass',3200);
+      noiseHit(.32,.075,'lowpass',550);
+      sfx(52,.42,'sine',.09,-18);
+      if(L>=2) sfx(120,.18,'sawtooth',.03,-70);
       if(L>=4){ rings.push({x:px,y:py,r:4,mr:46,ttl:.22,mt:.22,col:'#4be0e8'}); sfx(2200,.15,'sine',.03,-1600); }
       shake=Math.min(shake+7+L,14);
     }
@@ -1173,15 +1226,19 @@ function fireWeapons(dt){
         const ang=Math.atan2(a.y,a.x)+(i-(count-1)/2)*.4;
         missiles.push({x:px,y:py,vx:Math.cos(ang)*w.spd,vy:Math.sin(ang)*w.spd,dmg:D,life:3.2,tgt:null,t:0,lvl:L});
       }
-      sfx(340+L*30,.18,'sawtooth',.04,220);
-      if(L>=4) sfx(500,.25,'sawtooth',.03,300);
+      /* missile launch: rocket-motor whoosh + rising burn */
+      noiseHit(.28,.055,'bandpass',rand(750,1000));
+      sfx(190+L*20,.24,'sawtooth',.026,170);
+      if(L>=4) noiseHit(.34,.04,'bandpass',1500);
       shake=Math.min(shake+2,6);
     }
     else if(w.id==='tesla'){
       P.recoil=Math.max(P.recoil,4);
       teslaFire(D, a, w);
-      sfx(rand(1200,1600)+L*100,.12,'sawtooth',.04+L*.006,-900);
-      if(L>=4) sfx(rand(2000,2600),.08,'square',.02,-1500);
+      /* tesla: real electric crackle over the arc tone */
+      noiseHit(.08,.05,'highpass',rand(3800,5400));
+      sfx(rand(1300,1700)+L*80,.1,'sawtooth',.03,-1000);
+      if(L>=4) noiseHit(.11,.03,'highpass',6800);
       shake=Math.min(shake+2+L*.3,7);
     }
   }
@@ -2009,8 +2066,8 @@ function render(){
   const cx=W/2+rand(-shake,shake), cy=H/2+rand(-shake,shake);
   ctx.save();
   ctx.translate(cx,cy);
-  const zv=viewZoom();
-  if(zv!==1) ctx.scale(zv,zv);   // zoomed-out camera on small touch screens
+  const zv=ZV=viewZoom();
+  if(zv!==1) ctx.scale(zv,zv);   // zoomed-out camera on touch screens
 
   /* planetary ring — back half */
   drawWorldRing(false);
@@ -2182,9 +2239,10 @@ function render(){
 
   /* floating text */
   ctx.textAlign='center';
+  const fscale=Math.min(2.2,1/zv);   // keep combat text readable when the camera is pulled back
   for(const f of floats){
     const q=project(f.x,f.y); if(!q) continue;
-    ctx.font=(f.big?'bold 17px':'bold 13px')+' Consolas,monospace';
+    ctx.font='bold '+Math.round((f.big?17:13)*fscale)+'px Consolas,monospace';
     ctx.globalAlpha=Math.min(1,f.ttl*2.5);
     ctx.fillStyle=f.col; ctx.fillText(f.txt, q.x, q.y);
   }
@@ -2229,6 +2287,19 @@ function render(){
 
   if(!vigCvs || vigCvs.width!==W || vigCvs.height!==H) makeVig();
   ctx.drawImage(vigCvs,0,0);
+
+  /* hull-critical: the mech's cameras are failing — slice-glitch the whole frame */
+  if(state==='play' && player.hp>0 && player.hp<player.maxhp*.25){
+    if(Math.random()<.4){
+      const n=1+(Math.random()*3|0);
+      for(let i=0;i<n;i++){
+        const sy=Math.random()*H, sh=rand(3,22), off=rand(-28,28);
+        ctx.drawImage(cvs, 0, sy*DPR, cvs.width, Math.max(1,sh*DPR), off, sy, W, sh);
+      }
+    }
+    if(Math.random()<.25){ ctx.fillStyle='rgba(255,40,40,'+rand(.03,.08).toFixed(3)+')'; ctx.fillRect(0,0,W,H); }
+    if(Math.random()<.12){ ctx.fillStyle='rgba(75,224,232,.06)'; ctx.fillRect(0,rand(0,H),W,rand(2,6)); }
+  }
 
   /* virtual sticks */
   if(state==='play'){
@@ -2746,10 +2817,10 @@ function drawEnemy(e,p){
 
 function drawHpBar(e,p){
   if(e.hp<e.maxhp && e.type!=='boss'){
-    const w=e.r*2*p.s;
-    ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(p.x-w/2, p.y-(e.r+26)*p.s, w, 4);
+    const w=e.r*2*p.s, hh=Math.min(9,4/ZV);
+    ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(p.x-w/2, p.y-(e.r+26)*p.s, w, hh);
     ctx.fillStyle='#ff5b5b';
-    ctx.fillRect(p.x-w/2, p.y-(e.r+26)*p.s, w*Math.max(0,e.hp/e.maxhp), 4);
+    ctx.fillRect(p.x-w/2, p.y-(e.r+26)*p.s, w*Math.max(0,e.hp/e.maxhp), hh);
   }
 }
 
@@ -2885,6 +2956,7 @@ function updateHUD(){
   document.getElementById('uiCred').textContent=credits+'¢';
   document.getElementById('uiLives').textContent='▣'.repeat(Math.max(0,lives))+'□'.repeat(Math.max(0,maxLives-lives));
   const hpp=clamp(player.hp/player.maxhp,0,1);
+  document.getElementById('critwarn').style.display=(player.hp>0 && hpp<.25)?'block':'none';
   document.getElementById('hpfill').style.width=(hpp*100)+'%';
   document.getElementById('hpnum').textContent=Math.ceil(player.hp)+' / '+player.maxhp;
   /* main ammo bar — primary weapon */
@@ -2987,7 +3059,6 @@ function buildHangar(){
     d.innerHTML=`
       <div class="corb" style="background:radial-gradient(circle at 35% 35%, ${c.col}, #10141c);color:${c.col}">${c.icon}</div>
       <h3 style="color:${c.col}">${c.name}</h3>
-      <div class="cw">PRIMARY: ${w.name}</div>
       <p>${c.desc}</p>
       <div class="bonus">${c.bonusTxt}</div>`;
     d.onclick=()=>{ CHAR=c; hide('hangar'); buildMissions(); show('missions'); sfx(520,.15,'sine',.05,260); };
@@ -3370,6 +3441,13 @@ document.getElementById('btnMisBack').onclick=()=>{ hide('missions'); state='han
 document.getElementById('btnMisHome').onclick=()=>{ hide('missions'); state='menu'; buildHome(); show('menu'); };
 document.getElementById('btnHangBack').onclick=()=>{ hide('hangar'); state='menu'; buildHome(); show('menu'); };
 document.getElementById('btnHwBack').onclick=()=>{ hide('homeworld'); buildHome(); show('menu'); };
+document.getElementById('btnControls').onclick=e=>{
+  const box=document.getElementById('controlsBox');
+  const open=box.style.display!=='none';
+  box.style.display=open?'none':'block';
+  e.target.textContent=open?'ⓘ CONTROLS & BRIEFING':'✕ HIDE CONTROLS';
+  e.target.blur(); sfx(500,.08,'sine',.04,120);
+};
 document.getElementById('btnBuyFuel').onclick=()=>{
   if(SAVE.wallet<500) return;
   SAVE.wallet-=500; SAVE.fuel=Math.min(999,SAVE.fuel+50); saveGame();
