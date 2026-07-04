@@ -840,6 +840,7 @@ let state = 'menu';
 let player, enemies, bullets, ebullets, missiles, parts, floats, arcs, rings, beams, spawnQueue;
 let pickups, hazards, mortars, napalmQueue, scrap;
 let round, credits, kills, totalCred, spawnTimer, shake, lives, flashT, lowHullWarned, tGlobal = 0;
+let bossWarnT = 0;   // "ANOMALY INCOMING" banner timer
 let extractPhase=null, extractT=0, liftT=0, missionFirstClear=false;
 let shopPending=false, shopTimer=0, shopBonus=0;   // 1s beat between round-clear and the depot screen
 let reviveUsed=false;                               // one revive-roulette spin per run
@@ -862,7 +863,7 @@ const WEAPONS = [
   { id:'railgun', name:'RAILGUN',  icon:'━', desc:'Slow, devastating piercing slug.',
     owned:false, lvl:1, cost:450, upBase:280, rof:.85,  dmg:62, spd:1500, drain:16, cap:100, regen:11, cdT:0, rel:1.7, reloadT:0 },
   { id:'swarm',   name:'SWARM',    icon:'⌁', desc:'Homing missiles w/ splash. LV: +1 missile every other level, faster & tighter tracking.',
-    owned:false, lvl:1, cost:650, upBase:300, rof:.5,   dmg:24, spd:290, drain:9,  cap:100, regen:10, cdT:0, rel:1.9, reloadT:0 },
+    owned:false, lvl:1, cost:650, upBase:300, rof:.3,   dmg:24, spd:190, drain:7,  cap:100, regen:10, cdT:0, rel:1.9, reloadT:0 },
   { id:'aegis',   name:'AEGIS',    icon:'◍', desc:'Forcefield that repels & damages. Grows with level.',
     owned:false, lvl:1, cost:550, upBase:280, rof:0,    dmg:26, spd:0,   drain:22, cap:100, regen:13, cdT:0, energyW:true },
   { id:'tesla',   name:'TESLA',    icon:'ϟ', desc:'Arc lightning chaining between hostiles.',
@@ -966,6 +967,7 @@ function newGame(){
   player = {
     x:0, y:0, r:22, hp:hull, maxhp:hull, baseSpd:250,
     energy:{}, aimx:1, aimy:0, walk:0,
+    moving:false, mvx:0, mvy:0, lean:0, stride:0, prevStep:0,
     fieldOn:false, hitCd:0, invuln:0, slow:0,
     burnT:0, burnDps:0, burnTick:0,
     recoil:0, muzzle:0,
@@ -982,7 +984,7 @@ function newGame(){
   round=0; credits=(tier>=2?200:0); kills=0; totalCred=credits; shake=0; lives=maxLives; flashT=0;
   dropPhase=null; dropT=0; dropBomb=false;
   extractPhase=null; extractT=0; liftT=0; missionFirstClear=false;
-  shopPending=false; shopTimer=0; shopBonus=0;
+  shopPending=false; shopTimer=0; shopBonus=0; bossWarnT=0;
   buildSlots();
   startRound();
 }
@@ -1042,7 +1044,7 @@ function buildWave(n){
   if(n>=4) push('brute', n*0.5);
   for(let i=q.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [q[i],q[j]]=[q[j],q[i]]; }
   if(n>=2 && n!==10) q.push('bunker');   // fortified structure — level it for a nuke core (no structures in the boss round)
-  if(n===10) q.push('boss');
+  if(n===10){ q.push('boss'); if(missionDiff>=3) q.push('boss'); }   // 3-star: two apex machines
   return q;
 }
 
@@ -1060,12 +1062,13 @@ function spawnEnemyAt(type,x,y){
     const bp=BOSSES[theme.id];
     const hpMul = Math.max(1, 1 + .5*(round/10-1))*tMul;
     enemies.push({
-      type:'boss', bossId:theme.id, x:wrap(x), y:wrap(y), r:bp.r, col:bp.col,
+      type:'boss', bossId:theme.id, x:wrap(x), y:wrap(y), r:bp.r*3, col:bp.col,
       hp:bp.hp*hpMul, maxhp:bp.hp*hpMul, spd:bp.spd, dmg:bp.dmg*tDmg, pts:bp.pts,
       flash:0, t:rand(0,10), hitCd:0, kb:{x:0,y:0},
       a1:2.5, a2:5, spA:0, spT:0, chState:'walk', chT:0, chDx:0, chDy:0, spawnedAdd:false,
     });
     bossStinger(theme.id); shake=Math.min(shake+12,18);
+    bossWarnT=2.8;                                  // trigger the ANOMALY INCOMING banner
     toast('⚠ '+bp.name+' HAS SURFACED', '#ff8ab0');
     return;
   }
@@ -1365,7 +1368,7 @@ function teslaFire(D, a, w){
 
 /* ================= DAMAGE / SCRAP ================= */
 function damageEnemy(e, amt, showNum, crit){
-  e.hp -= amt; e.flash=.09;
+  e.hp -= amt; e.flash=Math.max(e.flash||0,.13);
   if(crit){ shake=Math.min(shake+3,16); }
   if(amt>45) shake=Math.min(shake+2,16);
   if(showNum){
@@ -1412,6 +1415,12 @@ function dropScrap(x,y,val){
 function onBossKilled(e){
   dropPowerup(e.x,e.y);
   dropScrap(e.x+30,e.y+20, 200);
+  /* on a 2-boss (3-star) fight, don't extract until every apex machine is down */
+  if(enemies.some(o=>o!==e && !o.dead && o.type==='boss')){
+    toast('⚠ ONE ANOMALY DOWN — ANOTHER IS STILL ACTIVE', '#ffae33');
+    sfx(200,.3,'sawtooth',.06,-80);
+    return;
+  }
   const first = !SAVE.conquered[theme.id];
   missionFirstClear = first;
   /* extraction: 10s to grab salvage, then dropship pickup */
@@ -1477,10 +1486,42 @@ function hurtPlayer(amt){
 
 function destroyMech(){
   lives--;
-  boom(player.x,player.y,'#ffae33',60);
-  rings.push({x:player.x,y:player.y,r:10,mr:220,ttl:.5,mt:.5,col:'#ffae33'});
-  shake=16;
-  sfx(50,.6,'sawtooth',.09,-20);
+  const P=player;
+  /* ---- big death explosion: stacked blasts + mech debris flying everywhere ---- */
+  boom(P.x,P.y,'#ffae33',60);
+  boom(P.x,P.y-6,'#ff5b3b',44);
+  for(let i=0;i<5;i++) rings.push({x:P.x,y:P.y,r:8+i*6,mr:120+i*55,ttl:.5+i*.09,mt:.5+i*.09,col:i%2?'#ffae33':'#ff5b3b'});
+  flashT=Math.max(flashT,.5);
+  shake=18;
+  const chunkCols=['#7c8797','#59636f','#3a434f','#a5b0be',CHAR.col,tierCol()];
+  const nChunks=Math.max(0,Math.min(72, MAX_PARTS-parts.length));
+  for(let i=0;i<nChunks;i++){                       // hull chunks blasted outward + upward
+    const a=rand(0,Math.PI*2), s=rand(80,430);
+    parts.push({x:P.x+rand(-10,10), y:P.y+rand(-24,4), vx:Math.cos(a)*s, vy:Math.sin(a)*s-rand(0,140),
+      ttl:rand(.6,1.7), col:chunkCols[(Math.random()*chunkCols.length)|0], r:rand(3,9)});
+  }
+  for(let i=0;i<26 && parts.length<MAX_PARTS;i++){   // fireball sparks
+    const a=rand(0,Math.PI*2), s=rand(60,320);
+    parts.push({x:P.x, y:P.y-8, vx:Math.cos(a)*s, vy:Math.sin(a)*s, ttl:rand(.25,.6),
+      col:Math.random()<.5?'#ffd23b':'#ff7a35', r:rand(2,5)});
+  }
+  /* ---- Sonic-style scrap scatter: lose a little scrap; it bursts out to be re-collected ---- */
+  if(credits>0){
+    const loss=Math.min(credits, Math.max(20, Math.round(credits*.25)));
+    credits-=loss;
+    floats.push({x:P.x, y:P.y-56, txt:'-'+loss+' SCRAP', ttl:1.2, col:'#ff8c3b', big:true});
+    let v=loss, n=0;
+    while(v>0 && n<12 && scrap.length<220){
+      let pv, pt;
+      if(v>=30 && Math.random()<.5){ pt='bolt'; pv=30; } else { pt='nut'; pv=Math.min(12,v); }
+      v-=pv; n++; if(n===12 && v>0){ pv+=v; v=0; }
+      const a=rand(0,Math.PI*2), s=rand(190,360);
+      scrap.push({type:pt, val:pv, x:wrap(P.x), y:wrap(P.y-6),
+        vx:Math.cos(a)*s, vy:Math.sin(a)*s, ttl:18, rot:rand(0,7), t:rand(0,7), scatter:.7});
+    }
+    sfx(880,.12,'square',.05,-220); sfx(1180,.1,'triangle',.04,-320);
+  }
+  sfx(50,.6,'sawtooth',.09,-20); noiseHit(.5,.06,'lowpass',700);
   if(lives<=0){ gameOver(); return; }
   player.hp=player.maxhp; player.hitCd=0; player.burnT=0;
   WEAPONS.forEach(w=>{ player.energy[w.id]=w.cap*capMul(); w.reloadT=0; });
@@ -1796,6 +1837,7 @@ function update(dt){
   P.magnetT=Math.max(0,P.magnetT-dt);
   P.recoil*=Math.pow(.0001,dt); P.muzzle-=dt;
   flashT=Math.max(0,flashT-dt);
+  bossWarnT=Math.max(0,bossWarnT-dt);
 
   /* orbital drop */
   if(dropPhase==='drop'){
@@ -1865,7 +1907,28 @@ function update(dt){
     let spd=P.baseSpd*(1+.09*UPG('spd').lvl+(CHAR.mods.spd||0));
     if(P.slow>0) spd*=.55;
     P.x+=mx/l*spd*dt; P.y+=my/l*spd*dt;
-    P.walk+=dt*10;
+    P.walk+=dt*11;
+    P.moving=true; P.mvx=mx/l; P.mvy=my/l;
+  } else {
+    P.moving=false;
+    P.walk+=dt*2.2;                    // idle: slow breathing sway
+  }
+  /* stride ramps up while moving, eases out when stopped — drives lean + gait depth */
+  P.stride += ((P.moving?1:0) - P.stride) * Math.min(1, dt*10);
+  /* body leans toward travel direction, relative to where the mech faces */
+  {
+    const face=Math.atan2(P.aimy,P.aimx);
+    const leanTarget = P.moving ? (P.mvx*Math.sin(face)-P.mvy*Math.cos(face))*0.28 : 0;
+    P.lean += (leanTarget-P.lean)*Math.min(1,dt*8);
+    /* footfall dust on the down-beat of each stride, on the ground only */
+    if(airHeight()===0 && P.stride>.4){
+      const step=Math.sin(P.walk);
+      if(P.prevStep>0 && step<=0 && parts.length<MAX_PARTS){
+        const fx=P.x+Math.cos(face+1.57)*10, fy=P.y+12;
+        for(let i=0;i<3;i++) parts.push({x:fx+rand(-6,6), y:fy+rand(-2,4), vx:rand(-30,30), vy:rand(-30,-8), ttl:rand(.25,.5), col:'rgba(150,150,160,.5)', r:rand(2,4)});
+      }
+      P.prevStep=step;
+    }
   }
   posWrap(P);
 
@@ -2000,16 +2063,19 @@ function update(dt){
     s.t+=dt; s.ttl-=dt; s.rot+=dt*2;
     if(s.ttl<=0){ s.dead=true; continue; }
     s.x+=s.vx*dt; s.y+=s.vy*dt;
-    s.vx*=Math.pow(.02,dt); s.vy*=Math.pow(.02,dt);
+    /* freshly-scattered scrap (from a lost life) flies free for a moment before it can be re-collected */
+    const scattering=(s.scatter||0)>0;
+    if(scattering){ s.scatter-=dt; s.vx*=Math.pow(.28,dt); s.vy*=Math.pow(.28,dt); }
+    else { s.vx*=Math.pow(.02,dt); s.vy*=Math.pow(.02,dt); }
     const dv=wd(player.x,player.y,s.x,s.y);
     const d=Math.hypot(dv.x,dv.y)||1;
-    if(P.magnetT>0 && d<560){
+    if(!scattering && P.magnetT>0 && d<560){
       s.vx+=dv.x/d*2600*dt; s.vy+=dv.y/d*2600*dt;
       if(Math.random()<dt*10) parts.push({x:s.x,y:s.y,vx:rand(-15,15),vy:rand(-15,15),ttl:.2,col:'#ff6b9d',r:1.5});
     }
-    else if(d<130){ s.vx+=dv.x/d*750*dt; s.vy+=dv.y/d*750*dt; } // base pickup pull
+    else if(!scattering && d<130){ s.vx+=dv.x/d*750*dt; s.vy+=dv.y/d*750*dt; } // base pickup pull
     posWrap(s);
-    if(d<30){
+    if(!scattering && d<30){
       s.dead=true;
       credits+=s.val; totalCred+=s.val;
       floats.push({x:s.x, y:s.y-14, txt:'+'+s.val, ttl:.45, col:s.type==='bolt'?'#e8edf4':'#ffae33'});
@@ -2144,8 +2210,8 @@ function update(dt){
         let diff=want-cur; while(diff>Math.PI)diff-=2*Math.PI; while(diff<-Math.PI)diff+=2*Math.PI;
         const maxTurn=Math.min(2.3+.5*(m.lvl-1), 5.5);   // tighter tracking each level
         const turn=clamp(diff,-maxTurn*dt,maxTurn*dt);
-        const capSpd=430+45*(m.lvl-1);                   // higher top speed each level
-        const s=Math.min(Math.hypot(m.vx,m.vy)*(1+dt*(.35+.05*(m.lvl-1))), capSpd);
+        const capSpd=300+30*(m.lvl-1);                   // slower cruise, still climbs a little each level
+        const s=Math.min(Math.hypot(m.vx,m.vy)*(1+dt*(.3+.05*(m.lvl-1))), capSpd);
         const na=cur+turn;
         m.vx=Math.cos(na)*s; m.vy=Math.sin(na)*s;
       }
@@ -2391,11 +2457,12 @@ function render(){
   }
   for(const b of ebullets){
     const p=project(b.x,b.y); if(!p) continue;
+    const rc = b.slow ? '#ff5a7a' : '#ff2b2b';   // enemy fire is always red for visibility (slow rounds a touch pinker)
     ctx.globalCompositeOperation='lighter';
-    drawGlow(p.x,p.y,b.r*3.4*p.s,hexA(b.col,.4));
+    drawGlow(p.x,p.y,b.r*3.8*p.s,hexA(rc,.5));
     ctx.globalCompositeOperation='source-over';
-    ctx.fillStyle=b.col; ctx.beginPath(); ctx.arc(p.x,p.y,b.r*p.s,0,7); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(p.x,p.y,b.r*.4*p.s,0,7); ctx.fill();
+    ctx.fillStyle=rc; ctx.beginPath(); ctx.arc(p.x,p.y,b.r*p.s,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,235,235,.9)'; ctx.beginPath(); ctx.arc(p.x,p.y,b.r*.42*p.s,0,7); ctx.fill();
   }
 
   /* prism lance beams */
@@ -2458,13 +2525,26 @@ function render(){
   ctx.globalAlpha=1;
 
   /* atmosphere rim */
-  const rim=ctx.createRadialGradient(0,0,PR-14,0,0,PR+52);
+  const isRed = theme.id==='cinder';                 // Cinder — the red foundry world burns with a red halo
+  const rimAtmo = isRed ? '#ff2e1a' : theme.atmo;
+  const rim=ctx.createRadialGradient(0,0,PR-14,0,0,PR+(isRed?90:52));
   rim.addColorStop(0,'rgba(0,0,0,0)');
-  rim.addColorStop(.32, hexA(theme.atmo,.4));
+  rim.addColorStop(.32, hexA(rimAtmo,isRed?.6:.4));
   rim.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=rim;
-  ctx.beginPath(); ctx.arc(0,0,PR+52,0,7); ctx.arc(0,0,Math.max(0,PR-14),0,7,true); ctx.fill();
-  ctx.strokeStyle=hexA(theme.atmo,.55); ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(0,0,PR+(isRed?90:52),0,7); ctx.arc(0,0,Math.max(0,PR-14),0,7,true); ctx.fill();
+  if(isRed){
+    const pulse=.5+.5*Math.abs(Math.sin(tGlobal*1.2));
+    ctx.globalCompositeOperation='lighter';
+    const g2=ctx.createRadialGradient(0,0,PR-20,0,0,PR+160);
+    g2.addColorStop(0,'rgba(0,0,0,0)');
+    g2.addColorStop(.5,'rgba(255,55,25,'+(.13+.11*pulse)+')');
+    g2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g2;
+    ctx.beginPath(); ctx.arc(0,0,PR+160,0,7); ctx.arc(0,0,Math.max(0,PR-20),0,7,true); ctx.fill();
+    ctx.globalCompositeOperation='source-over';
+  }
+  ctx.strokeStyle=hexA(rimAtmo,isRed?.8:.55); ctx.lineWidth=isRed?2.5:1.5;
   ctx.beginPath(); ctx.arc(0,0,PR,0,7); ctx.stroke();
 
   /* planetary ring — front half (faint, non-obstructive) */
@@ -2475,6 +2555,23 @@ function render(){
   if(flashT>0){
     ctx.fillStyle='rgba(255,255,240,'+Math.min(1,flashT*1.4)+')';
     ctx.fillRect(0,0,W,H);
+  }
+
+  /* ANOMALY INCOMING — boss-spawn warning banner */
+  if(bossWarnT>0){
+    const a=Math.min(1,bossWarnT*2)*(.55+.45*Math.abs(Math.sin(tGlobal*8)));
+    ctx.save();
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,40,40,'+(a*.12)+')'; ctx.fillRect(0,H*0.16,W,86);   // red wash behind the text
+    ctx.font='bold 46px Consolas,monospace';
+    ctx.shadowColor='rgba(255,0,0,.9)'; ctx.shadowBlur=26;
+    ctx.fillStyle='rgba(255,60,60,'+a+')';
+    ctx.fillText('⚠ ANOMALY INCOMING ⚠', W/2, H*0.20+18);
+    ctx.shadowBlur=0;
+    ctx.font='14px Consolas,monospace';
+    ctx.fillStyle='rgba(255,180,180,'+a+')';
+    ctx.fillText('APEX MACHINE DETECTED', W/2, H*0.20+46);
+    ctx.restore();
   }
 
   /* extraction countdown + liftoff fade */
@@ -2756,7 +2853,8 @@ function drawPickup(pk,p){
 /* ================= PLAYER DRAWING ================= */
 function drawPlayer(){
   const P=player;
-  const bob=Math.sin(P.walk)*1.5;
+  const stride=P.stride||0;
+  const bob=Math.sin(P.walk*2)*(1.5+stride*2.2);   // double-bounce gait, deeper while moving
   const rc=P.recoil||0;
   const ax=P.aimx, ay=P.aimy;
   const ang=Math.atan2(ay,ax);
@@ -2765,6 +2863,7 @@ function drawPlayer(){
 
   ctx.save(); ctx.translate(-ax*rc, -ay*rc*.5);
   ctx.translate(0, bob - lift);
+  ctx.rotate((P.lean||0));                           // lean into the direction of travel
 
   /* extraction / drop thrusters */
   if(lift>0){
@@ -2780,20 +2879,22 @@ function drawPlayer(){
   if(P.invuln>0 && Math.floor(tGlobal*10)%2===0) ctx.globalAlpha=.35;
   else if(P.hitCd>.25) ctx.globalAlpha=.6;
 
-  /* legs */
-  const lg=Math.sin(P.walk)*5;
+  /* legs — stride deepens and lifts the feet while moving */
+  const lg=Math.sin(P.walk)*(3+stride*6);
+  const liftAmt=stride*4;
   for(const side of [-1,1]){
     const lx=side*10, off=side>0?-lg:lg;
+    const footLift=Math.max(0,(side>0?off:-off))*.0 - Math.max(0,Math.sin(P.walk+(side>0?0:Math.PI)))*liftAmt;
     ctx.strokeStyle='#39424f'; ctx.lineWidth=7; ctx.lineCap='round';
     ctx.beginPath(); ctx.moveTo(lx*.7,-6); ctx.lineTo(lx, 4+off*.35); ctx.stroke();
     ctx.strokeStyle=vgrad(lx,4,lx,16,'#525d6c','#3a434f'); ctx.lineWidth=5;
-    ctx.beginPath(); ctx.moveTo(lx, 4+off*.35); ctx.lineTo(lx+side*2, 13+off*.4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx, 4+off*.35); ctx.lineTo(lx+side*2, 13+off*.4+footLift); ctx.stroke();
     ctx.lineCap='butt';
     ctx.fillStyle='#2c343f';
     ctx.beginPath();
-    ctx.moveTo(lx+side*2-7, 13+off*.4); ctx.lineTo(lx+side*2+7, 13+off*.4);
-    ctx.lineTo(lx+side*2+9, 17+off*.4); ctx.lineTo(lx+side*2-9, 17+off*.4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(lx+side*2-7, 13+off*.4, 14, 1.5);
+    ctx.moveTo(lx+side*2-7, 13+off*.4+footLift); ctx.lineTo(lx+side*2+7, 13+off*.4+footLift);
+    ctx.lineTo(lx+side*2+9, 17+off*.4+footLift); ctx.lineTo(lx+side*2-9, 17+off*.4+footLift); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(lx+side*2-7, 13+off*.4+footLift, 14, 1.5);
     ctx.fillStyle=hexA(TC,.7); ctx.beginPath(); ctx.arc(lx, 4+off*.35, 1.8, 0, 7); ctx.fill();
   }
 
@@ -2968,7 +3069,7 @@ function drawEnemy(e,p){
   const flash = e.flash>0;
   const col = flash? '#ffffff' : e.col;
 
-  if(e.type==='boss'){ drawBoss(e,flash); ctx.restore(); drawHpBar(e,p); return; }
+  if(e.type==='boss'){ ctx.scale(3,3); drawBoss(e,flash); ctx.restore(); drawHpBar(e,p); return; }   // apex machines are 3x scale
 
   if(e.type==='drone'){
     const bob=Math.sin(e.t*6)*3;
@@ -3127,6 +3228,13 @@ function drawEnemy(e,p){
       ctx.beginPath(); ctx.arc(0,0,240,0,7); ctx.stroke();
     }
   }
+  /* universal hit-flash pop — every enemy briefly blooms white when struck */
+  if(flash){
+    const fa=Math.min(1,e.flash/.13);
+    ctx.globalCompositeOperation='lighter';
+    drawGlow(0,-e.r*.3,e.r*1.5,'rgba(255,255,255,'+(.55*fa)+')');
+    ctx.globalCompositeOperation='source-over';
+  }
   ctx.restore();
   drawHpBar(e,p);
 }
@@ -3144,6 +3252,7 @@ function drawBoss(e,flash){
   const id=e.bossId, t=e.t;
   ctx.globalCompositeOperation='lighter';
   drawGlow(0,-20,70,hexA(e.col,.18));
+  if(flash){ const fa=Math.min(1,(e.flash||0)/.13); drawGlow(0,-20,90,'rgba(255,255,255,'+(.5*fa)+')'); }
   ctx.globalCompositeOperation='source-over';
 
   if(id==='verdant'){
@@ -3310,11 +3419,12 @@ function updateHUD(){
       bar.style.width=(clamp(player.energy[w.id]/cap,0,1)*100)+'%'; bar.style.background='';
     }
   });
-  const boss=enemies.find(e=>e.type==='boss'&&!e.dead);
+  const bosses=enemies.filter(e=>e.type==='boss'&&!e.dead);
+  const boss=bosses[0];
   const bb=document.getElementById('bossbar');
   if(boss){
     bb.style.display='block';
-    document.getElementById('bossname').textContent='⚠ '+BOSSES[boss.bossId].name+' ⚠';
+    document.getElementById('bossname').textContent='⚠ '+BOSSES[boss.bossId].name+(bosses.length>1?' ×'+bosses.length:'')+' ⚠';
     document.getElementById('bossfill').style.width=(clamp(boss.hp/boss.maxhp,0,1)*100)+'%';
   } else bb.style.display='none';
 }
