@@ -42,6 +42,54 @@
   }
   .mono{font-family:Consolas,'Courier New',monospace}
 
+  /* ---------- compact touch HUD ----------
+     phones in landscape are wider than 860px, so mobile decluttering is keyed on
+     body.touch (set on first touch) rather than on viewport width. Desktop untouched. */
+  body.touch .hideTouch{display:none!important}
+  body.touch .tOnly{display:block!important}
+  body.touch .tOnlyI{display:inline!important}
+  body.touch #topbar{top:5px;font-size:9px;gap:9px;padding:4px 10px;letter-spacing:.5px;max-width:96vw;white-space:nowrap}
+  body.touch #topbar #uiLives{letter-spacing:2px}
+  body.touch #bossbar{width:min(280px,72vw);top:34px;padding:4px 10px}
+  body.touch #bossname{font-size:8px;letter-spacing:2px;margin-bottom:2px}
+  body.touch #barsbox{width:168px;padding:6px 8px;left:8px;bottom:8px;border-radius:8px}
+  body.touch .barlabel{font-size:7px;letter-spacing:1px;margin-bottom:2px}
+  body.touch .bar{height:10px;margin-bottom:5px;border-radius:3px}
+  body.touch .bar .num{font-size:7px;line-height:10px;right:4px}
+  body.touch #slots{right:8px;bottom:8px;gap:3px}
+  body.touch .slot{width:36px;height:36px;padding-top:3px;border-radius:6px}
+  body.touch .slot .icon{font-size:13px;line-height:15px}
+  body.touch .slot .nm{display:none}
+  body.touch .slot .lv{font-size:6px;letter-spacing:0}
+  body.touch .slot .mini{bottom:2px;left:4px;right:4px;height:2px}
+  body.touch .slot.locked::after{font-size:8px;top:1px;right:2px}
+  body.touch #toasts{top:38px;right:8px;gap:5px;max-width:210px}
+  body.touch .toast{font-size:9px;padding:6px 10px;letter-spacing:.5px}
+  body.touch #comms{width:min(430px,84vw);bottom:auto;top:60px;padding:8px 12px}
+  body.touch #comms::after{display:none}
+  body.touch #commsAvatar{width:26px;height:26px}
+  body.touch #commsName{font-size:8px;margin-bottom:2px}
+  body.touch #commsText{font-size:10px;min-height:26px;line-height:1.4}
+  body.touch #touchui{right:12px;bottom:118px;gap:10px}
+  body.touch .tbtn{width:52px;height:52px;font-size:17px}
+  /* menus on touch */
+  body.touch .panel{padding:16px 14px;max-height:96vh;border-radius:10px}
+  body.touch h1{font-size:22px;letter-spacing:4px}
+  body.touch h2{font-size:15px;letter-spacing:3px;margin-bottom:8px}
+  body.touch .sub{font-size:10px;margin-bottom:12px}
+  body.touch .controls{font-size:11px;line-height:1.7;margin:10px auto}
+  body.touch .btn{padding:9px 18px;font-size:12px}
+  body.touch .char{width:150px;padding:12px 10px}
+  body.touch .char p{min-height:0}
+  body.touch .mission{width:250px;padding:12px}
+  body.touch .mission p{min-height:0;font-size:10.5px}
+  body.touch #shopgrid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;margin-bottom:12px}
+  body.touch .item{padding:7px 9px;font-size:10.5px}
+  body.touch .item p{min-height:0}
+  body.touch .statline{font-size:12px;margin:5px 0}
+  body.touch #shophead h2{font-size:13px}
+  body.touch #shopcred{font-size:14px}
+
   .glass{background:linear-gradient(155deg, rgba(58,74,106,.34), rgba(14,20,34,.28));
     backdrop-filter:blur(24px) saturate(180%) brightness(1.12);
     -webkit-backdrop-filter:blur(24px) saturate(180%) brightness(1.12);
@@ -164,10 +212,10 @@
 
 <div id="hud">
   <div id="topbar" class="mono glass">
-    <span id="uiWorld" style="color:#8b99ad"></span>
+    <span id="uiWorld" class="hideTouch" style="color:#8b99ad"></span>
     <span>ROUND <b id="uiRound">1</b></span>
-    <span>HOSTILES <b id="uiEnemies">0</b></span>
-    <span>CREDITS <b id="uiCred">0</b></span>
+    <span><span class="hideTouch">HOSTILES </span><span class="tOnlyI" style="display:none">☠ </span><b id="uiEnemies">0</b></span>
+    <span><span class="hideTouch">CREDITS </span><b id="uiCred">0</b></span>
     <span>MECHS <span id="uiLives">▣▣▣</span></span>
   </div>
   <div id="bossbar" class="glass mono">
@@ -211,7 +259,12 @@
     <div class="sub mono" id="conqCount"></div>
     <div class="sub mono" id="resLine" style="color:var(--amber);font-size:14px;margin-bottom:8px"></div>
     <div class="sub mono" id="rationNote" style="color:#7dff9a;display:none">⛽ EMERGENCY FUEL RATION DELIVERED (+40)</div>
-    <div class="controls">
+    <div class="controls tOnly" style="display:none">
+      <b>LEFT THUMB</b> — move &nbsp; <b>RIGHT THUMB</b> — aim &amp; fire<br>
+      <b>⬢</b> — shield burst &nbsp; <b>II</b> — pause<br>
+      Drive over <b style="color:var(--amber)">scrap</b> to salvage it — spend it at the depot between rounds.
+    </div>
+    <div class="controls hideTouch">
       <b>WASD</b> — move &nbsp; <b>ARROWS</b> — fire all weapons &nbsp; <b>SPACE</b> — shield burst<br>
       <b>P</b> — pause &nbsp; <b>M</b> — music<br><br>
       Hostiles drop <b style="color:var(--amber)">nuts &amp; bolts</b> — drive over the scrap to salvage it.<br>
@@ -326,6 +379,9 @@ addEventListener('resize', resize); resize();
 
 const rand = (a,b)=>a+Math.random()*(b-a);
 const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+
+/* detect touch devices up front so the compact mobile UI applies from the first frame */
+if(('ontouchstart' in window) || navigator.maxTouchPoints>0) document.body.classList.add('touch');
 
 /* ---- tiny planet ---- */
 const PR = 470, TILE = 72, WW = TILE*40, HORIZON = PR*Math.PI/2;
@@ -698,14 +754,16 @@ let pickups, hazards, mortars, napalmQueue, scrap;
 let round, credits, kills, totalCred, spawnTimer, shake, lives, flashT, lowHullWarned, tGlobal = 0;
 let extractPhase=null, extractT=0, liftT=0, missionFirstClear=false;
 let worldHaz=[];
+/* every world's terrain hazard is a FIRE FIELD — stepping in one ignites you (burn DoT) */
 const HAZCFG={
-  verdant:{col:'#7dff50', name:'ACID POOL',   dmg:9},
-  cinder: {col:'#ff5a1f', name:'LAVA PIT',    dmg:12},
-  glacia: {col:'#9fe4ff', name:'CREVASSE',    dmg:7, slow:true},
-  nocturne:{col:'#a06bff',name:'VOID RIFT',   dmg:10},
-  aurelia:{col:'#ffb52e', name:'MOLTEN GLASS',dmg:11},
-  prism:  {col:'#ff7ae8', name:'ANOMALY',     dmg:10, slow:true},
+  verdant:{col:'#ff8c3b', name:'BRUSH FIRE',    dmg:9},
+  cinder: {col:'#ff5a1f', name:'MAGMA FIRE',    dmg:12},
+  glacia: {col:'#ff9558', name:'CHEMICAL FIRE', dmg:7},
+  nocturne:{col:'#ff6b35',name:'PLASMA FIRE',   dmg:10},
+  aurelia:{col:'#ffb52e', name:'GLASS FIRE',    dmg:11},
+  prism:  {col:'#ff7ae8', name:'PRISMATIC FIRE',dmg:10},
 };
+const BURN_DUR=2.5, BURN_TICK=.5;   // ignited: keeps burning after you leave the fire
 
 /* ---- weapons (attachments — all owned fire together) ---- */
 const WEAPONS = [
@@ -817,6 +875,7 @@ function newGame(){
     x:0, y:0, r:22, hp:hull, maxhp:hull, baseSpd:250,
     energy:{}, aimx:1, aimy:0, walk:0,
     fieldOn:false, hitCd:0, invuln:0, slow:0,
+    burnT:0, burnDps:0, burnTick:0,
     recoil:0, muzzle:0,
     shieldT:0, shieldCharges:1+(tier>=2?1:0), magnetT:0, staticT:0,
   };
@@ -880,13 +939,13 @@ function startDrop(bomb){ dropPhase='drop'; dropT=0; dropBomb=bomb; player.invul
 function buildWave(n){
   const q=[], wg=theme.weights;
   const push=(t,c)=>{ c=Math.max(0,Math.round(c*(wg[t]||1))); for(let i=0;i<c;i++)q.push(t); };
-  push('drone', 10 + n*4);
-  if(n>=2) push('bomber', 2 + n*1.8);
-  if(n>=3) push('stinger', n*1.6);
-  if(n>=3) push('emp', Math.min(5, n*0.7));
-  if(n>=4) push('brute', n*1);
+  push('drone', 5 + n*2);
+  if(n>=2) push('bomber', 1 + n*0.9);
+  if(n>=3) push('stinger', n*0.8);
+  if(n>=3 && n!==10) push('emp', Math.min(3, n*0.35));
+  if(n>=4) push('brute', n*0.5);
   for(let i=q.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [q[i],q[j]]=[q[j],q[i]]; }
-  if(n>=2) q.push('bunker');   // fortified structure — level it for a nuke core
+  if(n>=2 && n!==10) q.push('bunker');   // fortified structure — level it for a nuke core (no structures in the boss round)
   if(n===10) q.push('boss');
   return q;
 }
@@ -1298,7 +1357,7 @@ function destroyMech(){
   shake=16;
   sfx(50,.6,'sawtooth',.09,-20);
   if(lives<=0){ gameOver(); return; }
-  player.hp=player.maxhp; player.hitCd=0;
+  player.hp=player.maxhp; player.hitCd=0; player.burnT=0;
   WEAPONS.forEach(w=>{ player.energy[w.id]=w.cap*capMul(); });
   startDrop(true);   // reserve mech drops in from orbit with an entry bomb
   toast('MECH DOWN — RESERVE INBOUND FROM ORBIT ('+lives+' LEFT)', '#ffae33');
@@ -1606,7 +1665,9 @@ function update(dt){
   if(spawnQueue.length){
     spawnTimer-=dt;
     if(spawnTimer<=0){
+      /* two hostiles per wave pulse — smaller waves, but they come at you twice as hard */
       spawnEnemy(spawnQueue.pop());
+      if(spawnQueue.length) spawnEnemy(spawnQueue.pop());
       spawnTimer=Math.max(.12, .8 - round*.05);
     }
   }
@@ -1650,17 +1711,30 @@ function update(dt){
   }
   hazards=hazards.filter(h=>!h.dead);
 
-  /* world terrain hazards */
+  /* world terrain hazards — fire fields: standing in one ignites you */
   {
     const hz=HAZCFG[theme.id];
     if(hz && airHeight()===0){
       for(const h of worldHaz){
         if(wdist2(h.x,h.y,P.x,P.y)<h.r*h.r){
-          hurtPlayer(hz.dmg);
-          if(hz.slow) P.slow=Math.max(P.slow,.8);
+          if(P.burnT<=0) floats.push({x:P.x,y:P.y-52,txt:'🔥 IGNITED',ttl:.9,col:'#ff8c3b'});
+          P.burnT=BURN_DUR; P.burnDps=hz.dmg;
           break;
         }
       }
+    }
+  }
+  /* burn damage over time — keeps ticking after you leave the fire */
+  if(P.burnT>0){
+    P.burnT-=dt;
+    P.burnTick-=dt;
+    if(P.burnTick<=0){
+      P.burnTick=BURN_TICK;
+      hurtPlayer(P.burnDps*BURN_TICK);
+    }
+    if(parts.length<MAX_PARTS && Math.random()<dt*26){
+      parts.push({x:P.x+rand(-12,12), y:P.y+rand(-28,-6), vx:rand(-20,20), vy:rand(-90,-40), ttl:rand(.25,.5),
+        col:Math.random()<.5?'#ff8c3b':'#ffd23b', r:rand(2,4.5)});
     }
   }
 
@@ -1942,12 +2016,12 @@ function render(){
 
   ctx.drawImage(shadeCvs, -PR, -PR);   // cached sphere shading (was a per-frame gradient)
 
-  /* world terrain hazards (lava pits, acid pools...) */
+  /* world terrain hazards (fire fields) */
   {
     const hz=HAZCFG[theme.id];
     if(hz) for(const h of worldHaz){
       const p=project(h.x,h.y); if(!p) continue;
-      /* dark pit */
+      /* scorched ground */
       ctx.fillStyle='rgba(0,0,0,.55)';
       ctx.beginPath(); ctx.ellipse(p.x,p.y,h.r*p.s,h.r*.62*p.s,0,0,7); ctx.fill();
       /* molten glow */
@@ -1958,9 +2032,10 @@ function render(){
       ctx.globalCompositeOperation='source-over';
       ctx.strokeStyle=hexA(hz.col,.5); ctx.lineWidth=2;
       ctx.beginPath(); ctx.ellipse(p.x,p.y,h.r*p.s,h.r*.62*p.s,0,0,7); ctx.stroke();
-      /* bubbles */
-      if(Math.random()<.06 && parts.length<MAX_PARTS)
-        parts.push({x:h.x+rand(-h.r,h.r)*.7, y:h.y+rand(-h.r,h.r)*.4, vx:0, vy:rand(-35,-15), ttl:rand(.3,.6), col:hz.col, r:rand(2,4)});
+      /* rising flames & embers */
+      if(Math.random()<.12 && parts.length<MAX_PARTS)
+        parts.push({x:h.x+rand(-h.r,h.r)*.7, y:h.y+rand(-h.r,h.r)*.4, vx:rand(-8,8), vy:rand(-70,-30), ttl:rand(.3,.7),
+          col:Math.random()<.4?'#ffd23b':hz.col, r:rand(2,5)});
     }
   }
 
@@ -2792,10 +2867,11 @@ function updateHUD(){
   document.getElementById('hpnum').textContent=Math.ceil(player.hp)+' / '+player.maxhp;
   /* main ammo bar — primary weapon */
   const pw=wByid(CHAR.wid), pcap=pw.cap*capMul(), pen=player.energy[pw.id];
-  document.getElementById('ammolabel').textContent='AMMO — '+pw.name+' (PRIMARY)';
+  const isTouch=document.body.classList.contains('touch');
+  document.getElementById('ammolabel').textContent='AMMO — '+pw.name+(isTouch?'':' (PRIMARY)');
   document.getElementById('ammofill').style.width=(clamp(pen/pcap,0,1)*100)+'%';
   document.getElementById('ammonum').textContent=Math.floor(pen)+' / '+Math.floor(pcap);
-  document.getElementById('shieldlabel').textContent='SHIELD [SPACE] — CELLS: '+('⬢'.repeat(player.shieldCharges)||'∅')+(player.magnetT>0?'   ⊙ MAGNET '+Math.ceil(player.magnetT)+'s':'');
+  document.getElementById('shieldlabel').textContent='SHIELD '+(isTouch?'':'[SPACE] ')+'— CELLS: '+('⬢'.repeat(player.shieldCharges)||'∅')+(player.magnetT>0?'   ⊙ MAGNET '+Math.ceil(player.magnetT)+'s':'');
   document.getElementById('shieldfill').style.width=(player.shieldT/3*100)+'%';
   WEAPONS.forEach((w,i)=>{
     const s=document.getElementById('slot'+i);
