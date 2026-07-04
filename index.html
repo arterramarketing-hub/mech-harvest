@@ -48,24 +48,18 @@
   body.touch .hideTouch{display:none!important}
   body.touch .tOnly{display:block!important}
   body.touch .tOnlyI{display:inline!important}
-  body.touch #topbar{top:5px;font-size:9px;gap:9px;padding:4px 10px;letter-spacing:.5px;max-width:96vw;white-space:nowrap}
-  body.touch #topbar #uiLives{letter-spacing:2px}
-  body.touch #bossbar{width:min(280px,72vw);top:34px;padding:4px 10px}
+  /* in-play HUD stripped to the bone — full stats live in the pause menu */
+  body.touch #topbar{display:none}
+  body.touch #slots{display:none}
+  body.touch #bossbar{width:min(280px,72vw);top:10px;padding:4px 10px}
   body.touch #bossname{font-size:8px;letter-spacing:2px;margin-bottom:2px}
-  body.touch #barsbox{width:168px;padding:6px 8px;left:8px;bottom:8px;border-radius:8px}
-  body.touch .barlabel{font-size:7px;letter-spacing:1px;margin-bottom:2px}
-  body.touch .bar{height:10px;margin-bottom:5px;border-radius:3px}
-  body.touch .bar .num{font-size:7px;line-height:10px;right:4px}
-  body.touch #slots{right:8px;bottom:8px;gap:3px}
-  body.touch .slot{width:36px;height:36px;padding-top:3px;border-radius:6px}
-  body.touch .slot .icon{font-size:13px;line-height:15px}
-  body.touch .slot .nm{display:none}
-  body.touch .slot .lv{font-size:6px;letter-spacing:0}
-  body.touch .slot .mini{bottom:2px;left:4px;right:4px;height:2px}
-  body.touch .slot.locked::after{font-size:8px;top:1px;right:2px}
-  body.touch #toasts{top:38px;right:8px;gap:5px;max-width:210px}
+  body.touch #barsbox{width:130px;padding:5px 6px;left:8px;bottom:8px;border-radius:8px}
+  body.touch .barlabel{display:none}
+  body.touch .bar{height:7px;margin-bottom:4px;border-radius:3px;border:none}
+  body.touch .bar .num{display:none}
+  body.touch #toasts{top:10px;right:8px;gap:5px;max-width:210px}
   body.touch .toast{font-size:9px;padding:6px 10px;letter-spacing:.5px}
-  body.touch #comms{width:min(430px,84vw);bottom:auto;top:60px;padding:8px 12px}
+  body.touch #comms{width:min(430px,84vw);bottom:auto;top:40px;padding:8px 12px}
   body.touch #comms::after{display:none}
   body.touch #commsAvatar{width:26px;height:26px}
   body.touch #commsName{font-size:8px;margin-bottom:2px}
@@ -364,7 +358,9 @@
 <div class="overlay" id="pause">
   <div class="panel center glass">
     <h2 style="text-align:center">PAUSED</h2>
+    <div id="pauseStats" class="mono tOnly" style="display:none;text-align:left;font-size:11px;line-height:2;letter-spacing:1px;color:#a5b4c8;max-width:280px;margin:0 auto 14px"></div>
     <button class="btn" id="btnResume">RESUME</button>
+    &nbsp;<button class="btn" id="btnMusicP">♪ MUSIC</button>
     &nbsp;<button class="btn" id="btnAbort">RETURN TO BASE</button>
   </div>
 </div>
@@ -373,9 +369,19 @@
 'use strict';
 /* ================= CORE ================= */
 const cvs = document.getElementById('cvs'), ctx = cvs.getContext('2d');
-let W = 0, H = 0;
-function resize(){ W = cvs.width = innerWidth; H = cvs.height = innerHeight; }
+let W = 0, H = 0, DPR = 1;
+function resize(){
+  /* render at native device resolution (crisp on phones), draw in CSS-pixel space */
+  DPR = Math.min(window.devicePixelRatio||1, 2.5);   // capped — full 3x murders phone GPUs on a fullscreen canvas
+  W = innerWidth; H = innerHeight;
+  cvs.width = Math.round(W*DPR); cvs.height = Math.round(H*DPR);
+}
 addEventListener('resize', resize); resize();
+/* camera zoom — phones pull the camera back so you can see more of the battlefield */
+function viewZoom(){
+  if(!document.body.classList.contains('touch')) return 1;
+  return clamp(Math.min(W,H)/640, .58, 1);
+}
 
 const rand = (a,b)=>a+Math.random()*(b-a);
 const clamp = (v,a,b)=>v<a?a:v>b?b:v;
@@ -524,7 +530,7 @@ addEventListener('keydown', e=>{
   if(state==='play' && e.code==='Space' && !e.repeat) activateShield();
   if(e.code==='KeyM' && (state==='play'||state==='shop'||state==='pause')) musicToggle();
   if(e.code==='KeyP' || e.code==='Escape'){
-    if(state==='play'){ state='pause'; show('pause'); musicDuck(0); }
+    if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); }
     else if(state==='pause'){ hide('pause'); state='play'; musicDuck(1); }
   }
 });
@@ -1987,6 +1993,8 @@ function renderSky(){
 }
 
 function render(){
+  /* draw in CSS pixels on a device-resolution backing store */
+  ctx.setTransform(DPR,0,0,DPR,0,0);
   /* psychedelic world — colors drift through the spectrum */
   if(theme.psy){
     const h=(tGlobal*14)%360;
@@ -2001,6 +2009,8 @@ function render(){
   const cx=W/2+rand(-shake,shake), cy=H/2+rand(-shake,shake);
   ctx.save();
   ctx.translate(cx,cy);
+  const zv=viewZoom();
+  if(zv!==1) ctx.scale(zv,zv);   // zoomed-out camera on small touch screens
 
   /* planetary ring — back half */
   drawWorldRing(false);
@@ -2847,6 +2857,18 @@ function drawBoss(e,flash){
 }
 
 /* ================= HUD ================= */
+/* full status readout inside the pause menu (mobile keeps the play screen bare) */
+function fillPauseStats(){
+  const el=document.getElementById('pauseStats'); if(!el||!player) return;
+  const amber=s=>'<b style="color:var(--amber)">'+s+'</b>';
+  const wl=WEAPONS.filter(w=>w.owned).map(w=>w.icon+' '+w.name+' LV'+w.lvl).join(' &nbsp;·&nbsp; ');
+  el.innerHTML=
+    '<div style="color:#8b99ad">'+CHAR.name+' @ '+theme.name+'</div>'+
+    '<div>ROUND '+amber(round)+' &nbsp; HOSTILES '+amber(enemies.length+spawnQueue.length)+'</div>'+
+    '<div>CREDITS '+amber(credits+'¢')+' &nbsp; MECHS '+amber(lives+'/'+maxLives)+'</div>'+
+    '<div>HULL '+amber(Math.ceil(player.hp)+'/'+player.maxhp)+' &nbsp; SHIELD CELLS '+amber('⬢'.repeat(player.shieldCharges)||'∅')+'</div>'+
+    '<div style="color:#8fd4d9;font-size:10px">'+wl+'</div>';
+}
 function buildSlots(){
   const el=document.getElementById('slots'); el.innerHTML='';
   WEAPONS.forEach((w,i)=>{
@@ -3339,6 +3361,7 @@ document.getElementById('btnRetry').onclick=()=>{
 };
 document.getElementById('btnToMissions').onclick=()=>{ hide('over'); state='missions'; buildMissions(); show('missions'); musicStart('home'); };
 document.getElementById('btnResume').onclick=e=>{ hide('pause'); e.target.blur(); state='play'; musicDuck(1); };
+document.getElementById('btnMusicP').onclick=e=>{ e.target.blur(); musicToggle(); };
 document.getElementById('btnAbort').onclick=()=>{ hide('pause'); state='menu'; document.getElementById('hud').style.display='none'; buildHome(); show('menu'); musicStart('home'); };
 document.getElementById('btnSumMissions').onclick=()=>{ hide('summary'); state='hangar'; buildHangar(); show('hangar'); musicStart('home'); };  // reselect your mech after each conquest
 document.getElementById('btnSumBase').onclick=()=>{ hide('summary'); state='menu'; buildHome(); show('menu'); musicStart('home'); };
@@ -3359,7 +3382,7 @@ const shieldTap=e=>{ e.preventDefault(); if(state==='play') activateShield(); };
 document.getElementById('btnShieldT').addEventListener('touchstart',shieldTap,{passive:false});
 document.getElementById('btnShieldT').addEventListener('click',()=>{ if(state==='play') activateShield(); });
 const pauseTap=()=>{
-  if(state==='play'){ state='pause'; show('pause'); musicDuck(0); }
+  if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); }
   else if(state==='pause'){ hide('pause'); state='play'; musicDuck(1); }
 };
 document.getElementById('btnPauseT').addEventListener('touchstart',e=>{ e.preventDefault(); pauseTap(); },{passive:false});
