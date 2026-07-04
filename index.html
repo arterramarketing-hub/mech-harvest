@@ -386,6 +386,12 @@
   <div class="panel center glass">
     <h2 style="text-align:center">PAUSED</h2>
     <div id="pauseStats" class="mono tOnly" style="display:none;text-align:left;font-size:11px;line-height:2;letter-spacing:1px;color:#a5b4c8;max-width:280px;margin:0 auto 14px"></div>
+    <div id="zoomRow" class="tOnly" style="display:none;margin-bottom:14px">
+      <div class="mono" style="font-size:9px;letter-spacing:2px;color:#8b99ad;margin-bottom:6px">CAMERA ZOOM</div>
+      <button class="btn zoombtn" data-z="close" style="font-size:10px;padding:6px 12px">CLOSE</button>
+      <button class="btn zoombtn" data-z="med" style="font-size:10px;padding:6px 12px">MEDIUM</button>
+      <button class="btn zoombtn" data-z="far" style="font-size:10px;padding:6px 12px">FAR</button>
+    </div>
     <button class="btn" id="btnResume">RESUME</button>
     &nbsp;<button class="btn" id="btnMusicP">♪ MUSIC</button>
     &nbsp;<button class="btn" id="btnAbort">RETURN TO BASE</button>
@@ -404,12 +410,17 @@ function resize(){
   cvs.width = Math.round(W*DPR); cvs.height = Math.round(H*DPR);
 }
 addEventListener('resize', resize); resize();
-/* camera zoom — touch devices pull all the way back so the entire planet disc
-   (edges, atmosphere and all) fits on screen and you watch the world turn under you */
+/* camera zoom — touch devices offer three camera distances (set in the pause menu):
+   CLOSE  — tight action camera
+   MEDIUM — default, halfway back
+   FAR    — the entire planet disc on screen, watch the world turn under you */
 let ZV=1;
 function viewZoom(){
   if(!document.body.classList.contains('touch')) return 1;
-  return clamp(Math.min(W,H)/(2*(PR+85)), .3, 1);
+  const m=Math.min(W,H);
+  const close=clamp(m/640,.58,1), far=clamp(m/(2*(PR+85)),.3,1);
+  const mode=SAVE.zoomMode||'med';
+  return mode==='close'?close : mode==='far'?far : (close+far)/2;
 }
 
 const rand = (a,b)=>a+Math.random()*(b-a);
@@ -638,6 +649,7 @@ if(!SAVE.stars) SAVE.stars={};
 if(typeof SAVE.wallet!=='number') SAVE.wallet=0;
 if(typeof SAVE.fuel!=='number') SAVE.fuel=100;
 if(typeof SAVE.homeTier!=='number') SAVE.homeTier=0;
+if(!SAVE.zoomMode) SAVE.zoomMode='med';
 function saveGame(){ try{ localStorage.setItem('steelharvest_save', JSON.stringify(SAVE)); }catch(e){} }
 
 /* ---- home planet tiers ---- */
@@ -1724,14 +1736,18 @@ function update(dt){
   if(extractPhase!=='lift' && dropPhase===null) fireWeapons(dt);
   else P.fieldOn=false;
 
-  /* spawning */
+  /* spawning — constant pressure: the field never goes quiet.
+     If the number of live hostiles drops below the round's pressure floor,
+     reinforcements pour in with bigger, faster bursts. Chaos is the baseline. */
   if(spawnQueue.length){
     spawnTimer-=dt;
     if(spawnTimer<=0){
-      /* two hostiles per wave pulse — smaller waves, but they come at you twice as hard */
-      spawnEnemy(spawnQueue.pop());
-      if(spawnQueue.length) spawnEnemy(spawnQueue.pop());
-      spawnTimer=Math.max(.12, .8 - round*.05);
+      let alive=0; for(const e of enemies) if(!e.dead && e.type!=='boss') alive++;
+      const floor=Math.min(5+round*2, 24);      // how many hostiles should be on you at all times
+      const starving=alive<floor;
+      const burst=starving?3:2;
+      for(let i=0;i<burst && spawnQueue.length;i++) spawnEnemy(spawnQueue.pop());
+      spawnTimer=starving? .18 : Math.max(.1, .6 - round*.04);
     }
   }
 
@@ -3433,6 +3449,20 @@ document.getElementById('btnRetry').onclick=()=>{
 document.getElementById('btnToMissions').onclick=()=>{ hide('over'); state='missions'; buildMissions(); show('missions'); musicStart('home'); };
 document.getElementById('btnResume').onclick=e=>{ hide('pause'); e.target.blur(); state='play'; musicDuck(1); };
 document.getElementById('btnMusicP').onclick=e=>{ e.target.blur(); musicToggle(); };
+/* camera zoom selector (mobile pause menu) */
+function refreshZoomBtns(){
+  const mode=SAVE.zoomMode||'med';
+  document.querySelectorAll('.zoombtn').forEach(b=>{
+    const on=b.dataset.z===mode;
+    b.classList.toggle('amber',on);
+    b.style.opacity=on?1:.55;
+  });
+}
+document.querySelectorAll('.zoombtn').forEach(b=>b.onclick=e=>{
+  SAVE.zoomMode=b.dataset.z; saveGame(); refreshZoomBtns();
+  e.target.blur(); sfx(600,.08,'sine',.04,150);
+});
+refreshZoomBtns();
 document.getElementById('btnAbort').onclick=()=>{ hide('pause'); state='menu'; document.getElementById('hud').style.display='none'; buildHome(); show('menu'); musicStart('home'); };
 document.getElementById('btnSumMissions').onclick=()=>{ hide('summary'); state='hangar'; buildHangar(); show('hangar'); musicStart('home'); };  // reselect your mech after each conquest
 document.getElementById('btnSumBase').onclick=()=>{ hide('summary'); state='menu'; buildHome(); show('menu'); musicStart('home'); };
