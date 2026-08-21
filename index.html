@@ -253,6 +253,7 @@
 <div id="touchui">
   <button class="tbtn" id="btnPauseT">II</button>
   <button class="tbtn" id="btnShieldT">⬢</button>
+  <button class="tbtn" id="btnDashT">≫</button>
 </div>
 
 <div id="comms" class="glass">
@@ -276,13 +277,15 @@
     <div id="controlsBox" style="display:none">
       <div class="controls tOnly" style="display:none">
         <b>ONE FINGER</b> — drag anywhere to move; weapons <b style="color:var(--cyan)">auto-fire</b> at the nearest hostile<br>
-        <b>⬢</b> — shield burst &nbsp; <b>II</b> — pause<br>
+        <b>⬢</b> — shield burst &nbsp; <b>≫</b> — thruster dash &nbsp; <b>II</b> — pause<br>
+        Chain kills without taking damage to build a <b style="color:var(--amber)">combo — higher combos multiply scrap</b>.<br>
         Drive over <b style="color:var(--amber)">scrap</b> to salvage it — spend it at the depot between rounds.<br>
         Kill a world's apex machine to <b style="color:#7dff9a">conquer it — progress is saved</b>.
       </div>
       <div class="controls hideTouch">
         <b>WASD</b> — move &nbsp; <b>ARROWS</b> — fire all weapons &nbsp; <b>SPACE</b> — shield burst<br>
-        <b>P</b> — pause &nbsp; <b>M</b> — music<br><br>
+        <b>SHIFT</b> — thruster dash (brief i-frames) &nbsp; <b>P</b> — pause &nbsp; <b>M</b> — music<br>
+        Chain kills without taking damage to build a <b style="color:var(--amber)">combo — higher combos multiply scrap</b>.<br><br>
         Hostiles drop <b style="color:var(--amber)">nuts &amp; bolts</b> — drive over the scrap to salvage it.<br>
         Buy new <b style="color:var(--cyan)">weapon attachments</b> at the depot; they all fire together.<br>
         Level attachments up to unlock <b style="color:#c49bff">combination tech</b>.<br>
@@ -295,6 +298,7 @@
     <button class="btn amber" id="btnStart">OPEN HANGAR ⏵</button>
     &nbsp;<button class="btn" id="btnHomeWorld">⬢ MOTHERSHIP</button>
     <div class="sub mono" id="resLine" style="color:var(--amber);font-size:14px;margin:18px 0 0"></div>
+    <div class="sub mono" id="svcRecord" style="color:#8b99ad;font-size:10px;letter-spacing:2px;margin:8px 0 0"></div>
   </div>
 </div>
 
@@ -354,6 +358,7 @@
     <div class="statline">Rounds survived: <b id="ovRound"></b></div>
     <div class="statline">Hostiles scrapped: <b id="ovKills"></b></div>
     <div class="statline">Scrap earned: <b id="ovCred"></b></div>
+    <div class="statline">Best combo: <b id="ovCombo">×0</b></div>
     <br>
     <button class="btn" id="btnRevive" style="border-color:#ffd23b;color:#ffd23b">↻ SPIN TO REVIVE</button>
     <br><br>
@@ -389,6 +394,7 @@
     <div class="statline">Apex machine destroyed: <b id="sumBoss"></b></div>
     <div class="statline">Rounds cleared: <b id="sumRounds"></b></div>
     <div class="statline">Hostiles scrapped: <b id="sumKills"></b></div>
+    <div class="statline">Best combo: <b id="sumCombo">×0</b></div>
     <div class="statline">Total scrap: <b id="sumCred"></b></div>
     <div class="statline">Deposited to bank: <b id="sumDeposit"></b></div>
     <br>
@@ -608,6 +614,7 @@ addEventListener('keydown', e=>{
   keys[e.code] = true;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
   if(state==='play' && e.code==='Space' && !e.repeat) activateShield();
+  if(state==='play' && (e.code==='ShiftLeft'||e.code==='ShiftRight') && !e.repeat) activateDash();
   if(e.code==='KeyM' && (state==='play'||state==='shop'||state==='pause')) musicToggle();
   if(e.code==='KeyP' || e.code==='Escape'){
     if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); }
@@ -686,6 +693,9 @@ if(!SAVE.conquered) SAVE.conquered={};
 if(!SAVE.stars) SAVE.stars={};
 if(typeof SAVE.wallet!=='number') SAVE.wallet=0;
 if(typeof SAVE.homeTier!=='number') SAVE.homeTier=0;
+if(typeof SAVE.totKills!=='number') SAVE.totKills=0;
+if(typeof SAVE.bestRound!=='number') SAVE.bestRound=0;
+if(typeof SAVE.bestCombo!=='number') SAVE.bestCombo=0;
 if(typeof SAVE.zoomVal!=='number') SAVE.zoomVal = ({close:.72,med:.4,far:0}[SAVE.zoomMode]) ?? .4;
 function saveGame(){ try{ localStorage.setItem('steelharvest_save', JSON.stringify(SAVE)); }catch(e){} }
 
@@ -841,6 +851,14 @@ let player, enemies, bullets, ebullets, missiles, parts, floats, arcs, rings, be
 let pickups, hazards, mortars, napalmQueue, scrap;
 let round, credits, kills, totalCred, spawnTimer, shake, lives, flashT, lowHullWarned, tGlobal = 0;
 let bossWarnT = 0;   // "ANOMALY INCOMING" banner timer
+/* kill-combo: chain kills to multiply scrap; taking hull damage breaks the streak */
+let combo=0, comboT=0, comboPop=0, comboBestRun=0;
+const COMBO_WINDOW=4;
+const comboMul=()=>combo>=30?2.5:combo>=15?2:combo>=8?1.5:combo>=4?1.25:1;
+/* juice timers: hit-stop on heavy kills, slow-mo on apex kills */
+let hitStopT=0, slowmoT=0;
+let dmgDirs=[];                     // incoming-damage direction pings (screen-edge arcs)
+const DASH_T=.16, DASH_CD=1.6, DASH_SPD=1350;   // thruster dash
 let extractPhase=null, extractT=0, liftT=0, missionFirstClear=false;
 let shopPending=false, shopTimer=0, shopBonus=0;   // 1s beat between round-clear and the depot screen
 let reviveUsed=false;                               // one revive-roulette spin per run
@@ -972,6 +990,7 @@ function newGame(){
     burnT:0, burnDps:0, burnTick:0,
     recoil:0, muzzle:0,
     shieldT:0, shieldCharges:1+(tier>=2?1:0), magnetT:0, staticT:0,
+    dashT:0, dashCd:0, dashDx:1, dashDy:0,
   };
   WEAPONS.forEach(w=>{ w.owned = (w.id===CHAR.wid); w.lvl=1; w.cdT=0; w.reloadT=0; player.energy[w.id]=w.cap; });
   UPGRADES.forEach(u=>u.lvl=0);
@@ -985,6 +1004,7 @@ function newGame(){
   dropPhase=null; dropT=0; dropBomb=false;
   extractPhase=null; extractT=0; liftT=0; missionFirstClear=false;
   shopPending=false; shopTimer=0; shopBonus=0; bossWarnT=0;
+  combo=0; comboT=0; comboPop=0; comboBestRun=0; hitStopT=0; slowmoT=0; dmgDirs=[];
   buildSlots();
   startRound();
 }
@@ -996,6 +1016,7 @@ function startRound(){
   spawnQueue = buildWave(round);
   spawnTimer = .5;
   lowHullWarned=false;
+  combo=0; comboT=0; dmgDirs=[];
   shopPending=false; shopTimer=0;
   WEAPONS.forEach(w=>{ player.energy[w.id] = w.cap*capMul(); w.reloadT=0; });
   const nCrates = 2 + (round%3===0?1:0);
@@ -1074,12 +1095,16 @@ function spawnEnemyAt(type,x,y){
   }
   const bp=ETYPES[type];
   const hpScale = (1 + .22*(round-1))*tMul, dmgScale = (1 + .08*(round-1))*tDmg;
+  /* elite variants — gold champions: tougher, meaner, 3x scrap, likely powerup drop */
+  const canElite = round>=3 && type!=='spider' && type!=='emp' && type!=='bunker';
+  const elite = canElite && Math.random() < Math.min(.16, .015*round + .03*(missionDiff-1));
   enemies.push({
-    type, x:wrap(x), y:wrap(y), r:bp.r, col:bp.col,
-    hp:bp.hp*hpScale, maxhp:bp.hp*hpScale,
-    spd:bp.spd*(1+.02*(round-1)), dmg:bp.dmg*dmgScale,
-    pts:bp.pts, flash:0, shootCd:rand(1,2.4), t:rand(0,10), hitCd:0, kb:{x:0,y:0}, seed:rand(0,Math.PI*2),
+    type, elite, x:wrap(x), y:wrap(y), r:bp.r*(elite?1.3:1), col:bp.col,
+    hp:bp.hp*hpScale*(elite?2.4:1), maxhp:bp.hp*hpScale*(elite?2.4:1),
+    spd:bp.spd*(1+.02*(round-1))*(elite?1.08:1), dmg:bp.dmg*dmgScale*(elite?1.35:1),
+    pts:bp.pts*(elite?3:1), flash:0, shootCd:rand(1,2.4), t:rand(0,10), hitCd:0, kb:{x:0,y:0}, seed:rand(0,Math.PI*2),
   });
+  if(elite) floats.push({x:wrap(x), y:wrap(y)-40, txt:'◆ ELITE', ttl:1.1, col:'#ffd23b', big:true});
   if(type==='emp'){ rings.push({x:wrap(x),y:wrap(y),r:6,mr:60,ttl:.4,mt:.4,col:'#8ab4ff'}); }
 }
 
@@ -1096,6 +1121,20 @@ function activateShield(){
   P.shieldT=3;
   rings.push({x:P.x,y:P.y,r:10,mr:80,ttl:.35,mt:.35,col:'#4be0e8'});
   sfx(500,.3,'sine',.07,300);
+}
+
+/* ================= THRUSTER DASH (SHIFT / ≫) ================= */
+function activateDash(){
+  const P=player;
+  if(P.dashCd>0 || P.dashT>0 || dropPhase!==null || extractPhase==='lift') return;
+  let dx=P.mvx, dy=P.mvy;
+  if(!P.moving || (!dx && !dy)){ dx=P.aimx; dy=P.aimy; }
+  const l=Math.hypot(dx,dy)||1;
+  P.dashDx=dx/l; P.dashDy=dy/l;
+  P.dashT=DASH_T; P.dashCd=DASH_CD;
+  P.invuln=Math.max(P.invuln, DASH_T+.08);   // thruster i-frames
+  rings.push({x:P.x,y:P.y,r:8,mr:54,ttl:.22,mt:.22,col:'#9fd8ff'});
+  noiseHit(.12,.05,'bandpass',1400); sfx(240,.14,'sawtooth',.05,260);
 }
 
 /* ================= FIRING (all attachments) ================= */
@@ -1334,6 +1373,7 @@ function chainFrom(src, D, hops, width){
 function teslaFire(D, a, w){
   const R=480+w.lvl*20; let best=null, bestScore=1e18;
   for(const e of enemies){
+    if(e.dead) continue;
     const dv=wd(e.x,e.y,player.x,player.y), d2=dv.x*dv.x+dv.y*dv.y;
     if(d2>R*R) continue;
     const d=Math.sqrt(d2)||1, dot=(dv.x*a.x+dv.y*a.y)/d;
@@ -1349,7 +1389,7 @@ function teslaFire(D, a, w){
   for(let i=0;i<hops;i++){
     let nx=null, nd=170*170;
     for(const e of enemies){
-      if(chain.includes(e)) continue;
+      if(e.dead||chain.includes(e)) continue;
       const d2=wdist2(cur.x,cur.y,e.x,e.y);
       if(d2<nd){ nd=d2; nx=e; }
     }
@@ -1377,7 +1417,10 @@ function damageEnemy(e, amt, showNum, crit){
   }
   if(e.hp<=0 && !e.dead){
     e.dead=true; kills++;
-    const val=Math.round(e.pts*(1+.09*(round-1))*diffLootMul());
+    combo++; comboT=COMBO_WINDOW; comboPop=.25;
+    if(combo>comboBestRun) comboBestRun=combo;
+    if(crit || e.type==='brute' || e.type==='bunker') hitStopT=Math.max(hitStopT,.05);   // heavy-kill hit-stop
+    const val=Math.round(e.pts*(1+.09*(round-1))*diffLootMul()*comboMul());
     dropScrap(e.x, e.y, val);
     deathSfx(e.type);
     boom(e.x, e.y, e.col, e.type==='boss'?50:e.type==='brute'?24:13);
@@ -1394,7 +1437,7 @@ function damageEnemy(e, amt, showNum, crit){
       sfx(55,.7,'sawtooth',.09,-25); noiseHit(.6,.06,'lowpass',600);
     }
     if(e.type==='boss') onBossKilled(e);
-    else if(e.type!=='bunker' && Math.random()<.05) dropPowerup(e.x,e.y);
+    else if(e.type!=='bunker' && Math.random()<(e.elite?.4:.05)) dropPowerup(e.x,e.y);
   }
 }
 
@@ -1413,6 +1456,7 @@ function dropScrap(x,y,val){
 }
 
 function onBossKilled(e){
+  slowmoT=1.1;   // savor the kill
   dropPowerup(e.x,e.y);
   dropScrap(e.x+30,e.y+20, 200);
   /* on a 2-boss (3-star) fight, don't extract until every apex machine is down */
@@ -1462,10 +1506,10 @@ function bomberBlast(e){
   boom(e.x,e.y,'#ff8c3b',26); rings.push({x:e.x,y:e.y,r:10,mr:R,ttl:.3,mt:.3,col:'#ff8c3b'});
   shake=Math.min(shake+8,14);
   sfx(70,.35,'sawtooth',.08,-40);
-  if(wdist2(player.x,player.y,e.x,e.y)<(R+player.r)*(R+player.r)) hurtPlayer(e.dmg);
+  if(wdist2(player.x,player.y,e.x,e.y)<(R+player.r)*(R+player.r)) hurtPlayer(e.dmg, e.x, e.y);
 }
 
-function hurtPlayer(amt){
+function hurtPlayer(amt, sx, sy){
   const P=player;
   if(P.hitCd>0 || P.invuln>0) return;
   if(P.shieldT>0){
@@ -1474,6 +1518,14 @@ function hurtPlayer(amt){
     return;
   }
   P.hp -= amt; P.hitCd=.35;
+  /* screen-edge ping pointing at the attacker */
+  if(sx!=null){
+    const dv=wd(sx,sy,P.x,P.y);
+    if(Math.hypot(dv.x,dv.y)>26) dmgDirs.push({ang:Math.atan2(dv.y,dv.x), ttl:.6});
+  }
+  /* real hull damage breaks the kill streak */
+  if(combo>=4) floats.push({x:P.x, y:P.y-64, txt:'COMBO ×'+combo+' BROKEN', ttl:1, col:'#ff8c9d'});
+  combo=0; comboT=0;
   shake=Math.min(shake+6+(amt>25?4:0),16);
   sfx(140,.2,'square',.06,-80);
   floats.push({x:P.x, y:P.y-40, txt:'-'+Math.round(amt), ttl:.8, col:'#ff6b6b'});
@@ -1536,9 +1588,12 @@ function openSummary(){
   for(const s of scrap){ salvage+=s.val; }
   scrap=[];
   if(salvage>0){ credits+=salvage; totalCred+=salvage; }
-  /* bank deposit + star record */
+  /* bank deposit + star record + service record */
   SAVE.wallet+=credits;
   SAVE.stars[theme.id]=Math.max(SAVE.stars[theme.id]||0, missionDiff);
+  SAVE.totKills+=kills;
+  SAVE.bestRound=Math.max(SAVE.bestRound,round);
+  SAVE.bestCombo=Math.max(SAVE.bestCombo,comboBestRun);
   saveGame();
   document.getElementById('sumDeposit').textContent=credits+' → bank '+SAVE.wallet;
   document.getElementById('hud').style.display='none';
@@ -1553,6 +1608,7 @@ function openSummary(){
   document.getElementById('sumBoss').textContent=BOSSES[theme.id].name;
   document.getElementById('sumRounds').textContent=round;
   document.getElementById('sumKills').textContent=kills;
+  document.getElementById('sumCombo').textContent='×'+comboBestRun;
   document.getElementById('sumCred').textContent=totalCred;
   show('summary');
   sfx(660,.3,'sine',.06,330); sfx(990,.5,'sine',.04,250);
@@ -1564,6 +1620,10 @@ function gameOver(){
   document.getElementById('ovRound').textContent=round;
   document.getElementById('ovKills').textContent=kills;
   document.getElementById('ovCred').textContent=totalCred;
+  document.getElementById('ovCombo').textContent='×'+comboBestRun;
+  SAVE.totKills+=kills;
+  SAVE.bestRound=Math.max(SAVE.bestRound,round);
+  SAVE.bestCombo=Math.max(SAVE.bestCombo,comboBestRun);
   saveGame();
   document.getElementById('hud').style.display='none';
   document.getElementById('btnRevive').style.display = reviveUsed ? 'none' : '';   // one spin per run
@@ -1716,6 +1776,15 @@ function collectPickup(p){
 /* ================= BOSS AI ================= */
 function bossUpdate(e, dt, dv, d){
   const id=e.bossId;
+  /* second act: below half hull every apex machine enrages — faster and relentless */
+  if(!e.enraged && e.hp<e.maxhp*.5){
+    e.enraged=true; e.spd*=1.18;
+    toast('⚠ '+BOSSES[id].name+' IS ENRAGED', '#ff4b4b');
+    rings.push({x:e.x,y:e.y,r:20,mr:220,ttl:.5,mt:.5,col:'#ff4b4b'});
+    shake=Math.min(shake+10,18);
+    sfx(60,.8,'sawtooth',.09,-20); noiseHit(.5,.06,'lowpass',600);
+  }
+  if(e.enraged) dt*=1.45;   // all attack timers run hot
   let sx=dv.x/d, sy=dv.y/d, spd=e.spd;
 
   if(id==='verdant'){
@@ -1838,6 +1907,10 @@ function update(dt){
   P.recoil*=Math.pow(.0001,dt); P.muzzle-=dt;
   flashT=Math.max(0,flashT-dt);
   bossWarnT=Math.max(0,bossWarnT-dt);
+  comboPop=Math.max(0,comboPop-dt*2);
+  if(comboT>0){ comboT-=dt; if(comboT<=0) combo=0; }   // streak window expired quietly
+  for(const dd of dmgDirs) dd.ttl-=dt;
+  dmgDirs=dmgDirs.filter(dd=>dd.ttl>0);
 
   /* orbital drop */
   if(dropPhase==='drop'){
@@ -1896,13 +1969,25 @@ function update(dt){
   }
 
   /* movement */
+  P.dashCd=Math.max(0,P.dashCd-dt);
   let mx=0,my=0;
   if(extractPhase!=='lift' && dropPhase===null){
     if(keys['KeyA'])mx-=1; if(keys['KeyD'])mx+=1;
     if(keys['KeyW'])my-=1; if(keys['KeyS'])my+=1;
     if(TOUCH.mv.id!==null && TOUCH.mv.len>.15){ mx=TOUCH.mv.dx; my=TOUCH.mv.dy; }
   }
-  if(mx||my){
+  if(P.dashT>0){
+    /* thruster dash — burst of speed with i-frames, exhaust trail behind */
+    P.dashT-=dt;
+    P.x+=P.dashDx*DASH_SPD*dt; P.y+=P.dashDy*DASH_SPD*dt;
+    P.moving=true; P.mvx=P.dashDx; P.mvy=P.dashDy;
+    P.walk+=dt*16;
+    for(let i=0;i<2 && parts.length<MAX_PARTS;i++)
+      parts.push({x:P.x-P.dashDx*14+rand(-7,7), y:P.y-P.dashDy*14+rand(-10,2),
+        vx:-P.dashDx*rand(40,130), vy:-P.dashDy*rand(40,130), ttl:rand(.15,.32),
+        col:Math.random()<.5?'#9fd8ff':'rgba(150,160,175,.6)', r:rand(2,4)});
+  }
+  else if(mx||my){
     const l=Math.hypot(mx,my);
     let spd=P.baseSpd*(1+.09*UPG('spd').lvl+(CHAR.mods.spd||0));
     if(P.slow>0) spd*=.55;
@@ -1992,7 +2077,7 @@ function update(dt){
       boom(m.tx,m.ty,'#ff6b35',20); rings.push({x:m.tx,y:m.ty,r:8,mr:85,ttl:.3,mt:.3,col:'#ff6b35'});
       sfx(75,.3,'sawtooth',.07,-30); shake=Math.min(shake+4,12);
       hazards.push({x:m.tx,y:m.ty,r:70,ttl:3,dps:14,hurts:'player',col:'#ff6b35'});
-      if(wdist2(player.x,player.y,m.tx,m.ty)<85*85) hurtPlayer(26);
+      if(wdist2(player.x,player.y,m.tx,m.ty)<85*85) hurtPlayer(26, m.x, m.y);
     }
   }
   mortars=mortars.filter(m=>!m.dead);
@@ -2152,7 +2237,7 @@ function update(dt){
 
     if(d < e.r+P.r && e.dmg>0){
       if(e.type==='bomber'){ if(!e.exploded){ bomberBlast(e); e.hp=0; e.dead=true; kills++; boom(e.x,e.y,e.col,10);} }
-      else if(e.hitCd<=0){ e.hitCd=.6; hurtPlayer(e.dmg); }
+      else if(e.hitCd<=0){ e.hitCd=.6; hurtPlayer(e.dmg, e.x, e.y); }
     }
   }
   enemies = enemies.filter(e=>!e.dead);
@@ -2200,7 +2285,7 @@ function update(dt){
     if(m.t>.15){
       if(!m.tgt || m.tgt.dead){
         let best=null,bd=1e18;
-        for(const e of enemies){ const d2=wdist2(m.x,m.y,e.x,e.y); if(d2<bd){bd=d2;best=e;} }
+        for(const e of enemies){ if(e.dead) continue; const d2=wdist2(m.x,m.y,e.x,e.y); if(d2<bd){bd=d2;best=e;} }
         m.tgt=best;
       }
       if(m.tgt){
@@ -2243,7 +2328,7 @@ function update(dt){
     if(b.life<=0){ b.dead=true; continue; }
     const rr=P.r+b.r;
     if(wdist2(b.x,b.y,P.x,P.y)<rr*rr){
-      b.dead=true; hurtPlayer(b.dmg);
+      b.dead=true; hurtPlayer(b.dmg, b.x-b.vx*.25, b.y-b.vy*.25);
       if(b.slow && P.shieldT<=0){ P.slow=1.8; floats.push({x:P.x,y:P.y-56,txt:'SERVOS FROZEN',ttl:.8,col:'#a8e6ff'}); }
     }
   }
@@ -2555,6 +2640,38 @@ function render(){
   if(flashT>0){
     ctx.fillStyle='rgba(255,255,240,'+Math.min(1,flashT*1.4)+')';
     ctx.fillRect(0,0,W,H);
+  }
+
+  /* incoming-damage direction pings — red arcs pointing at the attacker */
+  if(state==='play' && dmgDirs.length){
+    const rr=Math.min(W,H)*.34;
+    for(const dd of dmgDirs){
+      const a=Math.min(1,dd.ttl/.6);
+      ctx.strokeStyle='rgba(255,70,70,'+(.7*a)+')'; ctx.lineWidth=5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.arc(W/2,H/2,rr,dd.ang-.3,dd.ang+.3); ctx.stroke();
+      ctx.lineCap='butt';
+    }
+  }
+
+  /* kill-combo readout — the streak, its scrap multiplier, and the decay timer */
+  if(state==='play' && combo>=3){
+    const mul=comboMul();
+    const hasBoss=enemies.some(e=>e.type==='boss'&&!e.dead);
+    const isTouch=document.body.classList.contains('touch');
+    const y=(hasBoss?150:104)+(isTouch?-24:0);
+    const pop=1+comboPop*1.6;
+    ctx.save();
+    ctx.textAlign='center';
+    ctx.font='bold '+Math.round((isTouch?14:19)*pop)+'px Consolas,monospace';
+    const colr = mul>=2?'#ffd700' : mul>=1.5?'#c49bff' : '#ffae33';
+    ctx.shadowColor=colr; ctx.shadowBlur=12;
+    ctx.fillStyle=colr;
+    ctx.fillText('✦ COMBO ×'+combo+(mul>1?'  ·  SCRAP ×'+mul:''), W/2, y);
+    ctx.shadowBlur=0;
+    const bw=120;
+    ctx.fillStyle='rgba(255,255,255,.15)'; ctx.fillRect(W/2-bw/2, y+8, bw, 3);
+    ctx.fillStyle=colr; ctx.fillRect(W/2-bw/2, y+8, bw*clamp(comboT/COMBO_WINDOW,0,1), 3);
+    ctx.restore();
   }
 
   /* ANOMALY INCOMING — boss-spawn warning banner */
@@ -3017,6 +3134,13 @@ function drawPlayer(){
 
   ctx.restore();
 
+  /* thruster dash cooldown — thin arc filling clockwise until ready */
+  if(P.dashCd>0 && state==='play'){
+    const f=1-P.dashCd/DASH_CD;
+    ctx.strokeStyle='rgba(159,216,255,'+(.22+.3*f)+')'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(0,-14,32,-Math.PI/2,-Math.PI/2+f*Math.PI*2); ctx.stroke();
+  }
+
   /* SPACE shield bubble */
   if(P.shieldT>0){
     ctx.save();
@@ -3070,6 +3194,16 @@ function drawEnemy(e,p){
   const col = flash? '#ffffff' : e.col;
 
   if(e.type==='boss'){ ctx.scale(3,3); drawBoss(e,flash); ctx.restore(); drawHpBar(e,p); return; }   // apex machines are 3x scale
+
+  if(e.elite){
+    /* gold champion aura + larger frame */
+    ctx.globalCompositeOperation='lighter';
+    drawGlow(0,-6,e.r*1.7,hexA('#ffd23b',.2+.12*Math.abs(Math.sin(e.t*5))));
+    ctx.globalCompositeOperation='source-over';
+    ctx.strokeStyle=hexA('#ffd23b',.5); ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.ellipse(0,8,e.r*1.1,e.r*.42,0,0,7); ctx.stroke();
+    ctx.scale(1.3,1.3);
+  }
 
   if(e.type==='drone'){
     const bob=Math.sin(e.t*6)*3;
@@ -3243,7 +3377,7 @@ function drawHpBar(e,p){
   if(e.hp<e.maxhp && e.type!=='boss'){
     const w=e.r*2*p.s, hh=Math.min(9,4/ZV);
     ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(p.x-w/2, p.y-(e.r+26)*p.s, w, hh);
-    ctx.fillStyle='#ff5b5b';
+    ctx.fillStyle=e.elite?'#ffd23b':'#ff5b5b';
     ctx.fillRect(p.x-w/2, p.y-(e.r+26)*p.s, w*Math.max(0,e.hp/e.maxhp), hh);
   }
 }
@@ -3252,6 +3386,7 @@ function drawBoss(e,flash){
   const id=e.bossId, t=e.t;
   ctx.globalCompositeOperation='lighter';
   drawGlow(0,-20,70,hexA(e.col,.18));
+  if(e.enraged) drawGlow(0,-20,84,hexA('#ff4b4b',.13+.1*Math.abs(Math.sin(t*7))));
   if(flash){ const fa=Math.min(1,(e.flash||0)/.13); drawGlow(0,-20,90,'rgba(255,255,255,'+(.5*fa)+')'); }
   ctx.globalCompositeOperation='source-over';
 
@@ -3402,6 +3537,8 @@ function updateHUD(){
   document.getElementById('ammofill').style.background = reloading ? 'var(--amber)' : '';
   document.getElementById('shieldlabel').textContent='SHIELD '+(isTouch?'':'[SPACE] ')+'— CELLS: '+('⬢'.repeat(player.shieldCharges)||'∅')+(player.magnetT>0?'   ⊙ MAGNET '+Math.ceil(player.magnetT)+'s':'');
   document.getElementById('shieldfill').style.width=(player.shieldT/3*100)+'%';
+  const db=document.getElementById('btnDashT');
+  if(db) db.style.opacity = player.dashCd>0 ? .35 : 1;
   WEAPONS.forEach((w,i)=>{
     const s=document.getElementById('slot'+i);
     s.classList.toggle('locked', !w.owned);
@@ -3455,6 +3592,9 @@ function buildHome(){
     n===5 ? '★ SIGNAL DECRYPTED — A SIXTH WORLD AWAITS ★' :
     'WORLDS CONQUERED: '+n+' / 5';
   document.getElementById('resLine').textContent='⬡ SCRAP BANK: '+SAVE.wallet+'   ⬢ '+TIERS[SAVE.homeTier].name;
+  document.getElementById('svcRecord').textContent = SAVE.totKills>0
+    ? 'SERVICE RECORD — '+SAVE.totKills+' KILLS · BEST ROUND '+SAVE.bestRound+' · BEST COMBO ×'+SAVE.bestCombo
+    : '';
 }
 
 function buildHomeWorld(){
@@ -3868,8 +4008,12 @@ function musicToggle(){
 /* ================= LOOP ================= */
 let last=performance.now();
 function loop(now){
-  const dt=Math.min(.033,(now-last)/1000); last=now;
-  tGlobal += (state==='play'?0:dt);   // keep menu animations alive; update() adds dt during play
+  const rdt=Math.min(.033,(now-last)/1000); last=now;
+  let dt=rdt;
+  /* time dilation: hit-stop freezes heavy kills, slow-mo savors apex kills */
+  if(hitStopT>0){ hitStopT-=rdt; dt*=.12; }
+  else if(slowmoT>0){ slowmoT-=rdt; dt*=.3; }
+  tGlobal += (state==='play'?0:rdt);   // keep menu animations alive; update() adds dt during play
   if(state==='play'){ update(dt); updateHUD(); }
   render();
   requestAnimationFrame(loop);
@@ -3926,6 +4070,9 @@ document.getElementById('btnControls').onclick=e=>{
 const shieldTap=e=>{ e.preventDefault(); if(state==='play') activateShield(); };
 document.getElementById('btnShieldT').addEventListener('touchstart',shieldTap,{passive:false});
 document.getElementById('btnShieldT').addEventListener('click',()=>{ if(state==='play') activateShield(); });
+const dashTap=e=>{ e.preventDefault(); if(state==='play') activateDash(); };
+document.getElementById('btnDashT').addEventListener('touchstart',dashTap,{passive:false});
+document.getElementById('btnDashT').addEventListener('click',()=>{ if(state==='play') activateDash(); });
 const pauseTap=()=>{
   if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); }
   else if(state==='pause'){ hide('pause'); state='play'; musicDuck(1); }
