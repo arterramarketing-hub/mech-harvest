@@ -330,7 +330,7 @@
 <div class="overlay" id="missions">
   <div class="panel glass">
     <h2 style="text-align:center">SELECT DEPLOYMENT ZONE</h2>
-    <div class="sub">FIVE WORLDS HAVE GONE DARK — COMMAND NEEDS BOOTS ON THE GROUND</div>
+    <div class="sub">THREE WORLDS HAVE GONE DARK — COMMAND NEEDS BOOTS ON THE GROUND</div>
     <div id="missiongrid"></div>
     <div class="center" style="margin-top:14px">
       <button class="btn" id="btnMisBack">◂ BACK TO HANGAR</button>
@@ -587,8 +587,6 @@ function bossStinger(id){
     if(id==='verdant'){ horn(55,1.8,.11,0); horn(58.3,1.8,.09,0); horn(41.2,2.2,.1,.15); }            // rotting organ cluster
     else if(id==='cinder'){ horn(46,1.2,.13,0,'square'); noiseHit(1,.07,'lowpass',700); horn(92,.8,.08,.3,'square'); } // furnace slam
     else if(id==='glacia'){ horn(1760,1.4,.05,0,'sine'); horn(1245,1.6,.05,.2,'sine'); horn(880,2,.05,.4,'sine'); }   // glass shriek falling
-    else if(id==='nocturne'){ horn(220,2.2,.07,0,'sawtooth'); horn(233,2.2,.07,0,'sawtooth'); noiseHit(1.6,.04,'highpass',4000); } // detuned dread
-    else if(id==='aurelia'){ horn(38,1,.14,0,'sine'); horn(38,1,.14,.5,'sine'); horn(30,1.6,.15,1,'sine'); }          // triple sub tremor
     else if(id==='prism'){ for(let i=0;i<5;i++) horn(330*Math.pow(1.19,i),1.2,.04,i*.1,'triangle'); horn(110.5,2,.08,.2); } // impossible chord
   }catch(e){}
 }
@@ -625,6 +623,8 @@ addEventListener('keydown', e=>{
   }
 });
 addEventListener('keyup', e=>{ keys[e.code] = false; });
+/* losing focus mid-keypress eats the keyup — without this the mech runs forever */
+addEventListener('blur', ()=>{ for(const k in keys) keys[k]=false; });
 
 /* ---- touch controls (twin virtual sticks) ---- */
 const TOUCH={ mv:{id:null,sx:0,sy:0,dx:0,dy:0,len:0}, aim:{id:null,sx:0,sy:0,dx:0,dy:0,len:0} };
@@ -741,37 +741,34 @@ const diffLootMul= ()=>1+.35*(missionDiff-1);
 
 /* ================= WORLDS & BOSSES ================= */
 const THEMES = [
-  { id:'verdant', name:'VERDANT-6', sub:'OVERGROWN TERRAFORM COLONY', threat:1, pr:470,
+  { id:'verdant', name:'VERDANT-6', sub:'OVERGROWN TERRAFORM COLONY', threat:1, pr:470, dp:[.12,.18],
     story:'The terraforming core of Verdant-6 went silent 40 days ago. Its gardener drones kept working — but now they cultivate something else. Cut through the canopy, reach the core, and burn the infestation out of the soil.',
     sky:'#040c07', tileA:'#143823', tileB:'#0e2b1a', atmo:'#46e08c', star:'#bfffd9', accent:'#7dffb0',
     ring:null, weights:{drone:1.25,bomber:1,stinger:.75,brute:1} },
-  { id:'cinder', name:'CINDER', sub:'ROGUE FOUNDRY WORLD', threat:2, pr:430,
+  { id:'cinder', name:'CINDER', sub:'ROGUE FOUNDRY WORLD', threat:2, pr:430, dp:[.85,.14],
     story:'Mining colony K-77’s smelter AI declared the whole planet its forge — and every colonist raw material. Walk the ashfields, break its production lines, and shut the furnaces down for good.',
     sky:'#0d0504', tileA:'#3d1c10', tileB:'#2e140c', atmo:'#ff6b35', star:'#ffd0a8', accent:'#ff9558',
     ring:null, weights:{drone:1,bomber:1.5,stinger:.7,brute:1.1} },
-  { id:'glacia', name:'GLACIA', sub:'FROZEN SEED VAULT', threat:2, pr:545, rain:true,
+  { id:'glacia', name:'GLACIA', sub:'FROZEN SEED VAULT', threat:3, pr:545, rain:true, dp:[.65,.88],
     story:'Humanity’s last seed vault sleeps beneath Glacia’s ice — and its defense grid no longer recognizes friend from thief. Recover the vault codes before the coming storm buries them for a thousand years.',
     sky:'#03070f', tileA:'#1b3850', tileB:'#142c40', atmo:'#7ad7ff', star:'#d8f2ff', accent:'#a8e6ff',
     ring:{col:'#a8e6ff', tilt:-.16, dash:null, bands:[[1.72,.42,26,.2],[1.5,.37,6,.42]]},
     weights:{drone:.9,bomber:.8,stinger:1.45,brute:1} },
-  { id:'nocturne', name:'NOCTURNE', sub:'DERELICT SIGNAL ARRAY', threat:3, pr:500,
-    story:'Something on this lightless rock is broadcasting the swarm’s rally signal across the sector. Every minute the array transmits, a thousand more machines wake up and start walking. Find it. Silence it.',
-    sky:'#060410', tileA:'#241b42', tileB:'#1a1333', atmo:'#a06bff', star:'#e0d0ff', accent:'#c49bff',
-    ring:{col:'#c49bff', tilt:.34, dash:[18,12], bands:[[1.48,.32,4,.42],[1.62,.35,3,.32],[1.8,.39,2.5,.24]]},
-    weights:{drone:1.1,bomber:1,stinger:1.1,brute:1.25} },
-  { id:'aurelia', name:'AURELIA', sub:'TOMB OF THE WAR MACHINES', threat:3, pr:595,
-    story:'The old wars were buried under Aurelia’s golden dunes and meant to stay there — until prospectors dug too deep. The ancient machines are waking up hungry. Put them back in the ground.',
-    sky:'#0d0903', tileA:'#4d3d17', tileB:'#3c2f11', atmo:'#ffc94b', star:'#fff0c0', accent:'#ffe08a',
-    ring:{col:'#ffe08a', tilt:-.07, dash:null, bands:[[1.88,.34,30,.15],[1.62,.3,14,.3],[1.44,.27,5,.42]]},
-    weights:{drone:1,bomber:1.1,stinger:1,brute:1.45} },
-  { id:'prism', name:'PRISM', sub:'IMPOSSIBLE FREQUENCY', threat:3, secret:true, psy:true, pr:445,
-    story:'It was never on any survey. A sixth signature humming beneath the sector map at a frequency that shouldn’t exist. The ground shifts colors when you aren’t looking at it, and something at the center is dreaming in geometry. Wake it. End it.',
+  { id:'prism', name:'PRISM', sub:'IMPOSSIBLE FREQUENCY', threat:3, secret:true, psy:true, pr:445, dp:[.2,.8],
+    story:'It was never on any survey. A fourth signature humming beneath the sector map at a frequency that shouldn’t exist. The ground shifts colors when you aren’t looking at it, and something at the center is dreaming in geometry. Wake it. End it.',
     sky:'#0a0512', tileA:'#3a1a4a', tileB:'#26103a', atmo:'#ff7ae8', star:'#ffd0f8', accent:'#ff9df0',
     ring:{col:'#ff7ae8', tilt:-.28, dash:[8,20], bands:[[1.56,.46,7,.35],[1.74,.52,7,.25]]},
     weights:{drone:1.3,bomber:1,stinger:1.2,brute:1.2} },
 ];
 let theme = THEMES[0];
-const allBaseConquered = ()=>THEMES.slice(0,5).every(t=>SAVE.conquered[t.id]);
+const BASE_WORLDS = THEMES.filter(t=>!t.secret);
+const allBaseConquered = ()=>BASE_WORLDS.every(t=>SAVE.conquered[t.id]);
+/* prune save progress for worlds no longer on the roster (e.g. the 6→4 world cut) */
+{
+  const ids=THEMES.map(t=>t.id);
+  for(const k of Object.keys(SAVE.conquered)) if(!ids.includes(k)) delete SAVE.conquered[k];
+  for(const k of Object.keys(SAVE.stars))     if(!ids.includes(k)) delete SAVE.stars[k];
+}
 
 const BOSSES = {
   verdant:  { name:'THE GARDENER',  hp:2400, spd:42, r:54, dmg:32, pts:800, col:'#46e08c',
@@ -780,10 +777,6 @@ const BOSSES = {
               blurb:'Apex machine: FORGEMASTER — magma mortar artillery' },
   glacia:   { name:'PERMAFROST',    hp:2500, spd:40, r:52, dmg:30, pts:820, col:'#7ad7ff',
               blurb:'Apex machine: PERMAFROST — cryo-lance sentinel' },
-  nocturne: { name:'THE SIGNAL',    hp:2300, spd:46, r:48, dmg:34, pts:880, col:'#a06bff',
-              blurb:'Apex machine: THE SIGNAL — phase-shifting obelisk' },
-  aurelia:  { name:'ANCIENT ONE',   hp:3300, spd:34, r:60, dmg:44, pts:950, col:'#ffc94b',
-              blurb:'Apex machine: ANCIENT ONE — burrowing siege scarab' },
   prism:    { name:'THE FRACTAL',   hp:3600, spd:50, r:50, dmg:39, pts:1200, col:'#ff7ae8',
               blurb:'Apex machine: THE FRACTAL — kaleidoscope of mirrors' },
 };
@@ -807,18 +800,6 @@ const DIALOGUES = {
     ['Halfway there. Can\'t feel my actuators.', 'LIE DOWN. THE SNOW WILL KEEP YOU.'],
     ['Vault doors sighted. Breaking through the storm.', 'THEN FREEZE STANDING, LITTLE THIEF.'],
   ],
-  nocturne: [
-    ['HQ... do you hear that? It\'s inside the static.', '*Y O U   A R E   R E C E I V E D*'],
-    ['The array knows my callsign, HQ.', '*WE HAVE ALREADY BROADCAST YOUR ENDING*'],
-    ['Signal strength doubling. Halfway to the source.', '*EVERY WAKING MACHINE SPEAKS MY NAME*'],
-    ['Source in sight. Cutting this transmission.', '*SILENCE IS ALSO A SIGNAL*'],
-  ],
-  aurelia: [
-    ['HQ, the dunes are... rearranging themselves.', 'WHO DIGS. WHO DARES DIG.'],
-    ['Found old war wrecks. Hundreds of them.', 'MY SOLDIERS SLEEP LIGHTLY.'],
-    ['Ground tremors are constant now, HQ.', 'I HAVE OUTLIVED TEN THOUSAND HEROES.'],
-    ['Something huge is right under me, isn\'t it.', 'YES.'],
-  ],
   prism: [
     ['HQ, colors here don\'t... stay put.', '◈ YOU ARE A ROUGH DRAFT OF YOURSELF ◈'],
     ['I\'m seeing copies of my mech in the tiles.', '◈ WE FOLDED YOU YESTERDAY. YOU LIKED IT ◈'],
@@ -839,8 +820,6 @@ const CONQUER_LINES = {
   verdant: 'HQ, this is %C. The Gardener is mulch. Terraform core secured — Verdant-6 can grow something honest again.',
   cinder:  'HQ, %C reporting. Forgemaster is slag in its own furnace. The fires of Cinder are out.',
   glacia:  'HQ, %C here. Permafrost is shattered. Vault codes recovered — the seeds are safe.',
-  nocturne:'HQ, this is %C. The Signal is silent. Nothing is answering the swarm anymore.',
-  aurelia: 'HQ, %C confirming. The Ancient One is buried — for good this time. Aurelia sleeps.',
   prism:   'HQ… %C here. The Fractal folded into itself and vanished. I don’t think we were ever supposed to see this place.',
 };
 
@@ -865,10 +844,9 @@ const CHARS = [
 ];
 let CHAR = CHARS[0];
 
-/* starfield + distant planets */
+/* starfield (each theme carries its own distant-planet sky position in theme.dp) */
 const STARS = [];
 for(let i=0;i<160;i++) STARS.push({x:Math.random(),y:Math.random(),r:rand(.6,2),tw:rand(1,4),ph:rand(0,7)});
-const DPLANETS = [ [.12,.18],[.85,.14],[.65,.88],[.2,.8],[.92,.55],[.5,.1] ];
 
 /* ================= STATE ================= */
 let state = 'menu';
@@ -894,8 +872,6 @@ const HAZCFG={
   verdant:{col:'#ff8c3b', name:'BRUSH FIRE',    dmg:9},
   cinder: {col:'#ff5a1f', name:'MAGMA FIRE',    dmg:12},
   glacia: {col:'#6fb2e0', name:'RAIN PUDDLE', dmg:0, slow:true},
-  nocturne:{col:'#ff6b35',name:'PLASMA FIRE',   dmg:10},
-  aurelia:{col:'#ffb52e', name:'GLASS FIRE',    dmg:11},
   prism:  {col:'#ff7ae8', name:'PRISMATIC FIRE',dmg:10},
 };
 const BURN_DUR=2.5, BURN_TICK=.5;   // ignited: keeps burning after you leave the fire
@@ -1115,6 +1091,7 @@ function spawnEnemy(type){
   let d = rand(HORIZON+60, HORIZON+280);
   if(type==='emp') d = rand(320,650);      // towers rise inside the battlefield
   if(type==='bunker') d = rand(380,720);   // structures sit in the open field
+  if(type==='medic') d = rand(400,700);    // medics deploy with the pack — a slow straggler outside the horizon would stall the round
   const a=rand(0,Math.PI*2);
   spawnEnemyAt(type, player.x+Math.cos(a)*d, player.y+Math.sin(a)*d);
 }
@@ -1128,7 +1105,7 @@ function spawnEnemyAt(type,x,y){
       type:'boss', bossId:theme.id, x:wrap(x), y:wrap(y), r:bp.r*3, col:bp.col,
       hp:bp.hp*hpMul, maxhp:bp.hp*hpMul, spd:bp.spd, dmg:bp.dmg*tDmg, pts:bp.pts,
       flash:0, t:rand(0,10), hitCd:0, kb:{x:0,y:0},
-      a1:2.5, a2:5, spA:0, spT:0, chState:'walk', chT:0, chDx:0, chDy:0, spawnedAdd:false,
+      a1:2.5, a2:5, spA:0, spT:0,
     });
     bossStinger(theme.id); shake=Math.min(shake+12,18);
     bossWarnT=2.8;                                  // trigger the ANOMALY INCOMING banner
@@ -1518,6 +1495,7 @@ function onBossKilled(e){
   missionFirstClear = first;
   /* extraction: 10s to grab salvage, then dropship pickup */
   spawnQueue=[];
+  mortars=[];   // boss-fired shells still in the air must not kill you after the win
   extractPhase='count'; extractT=10; liftT=0;
   player.magnetT=Math.max(player.magnetT,10);   // salvage magnet spins up for the sweep
   toast('⏱ EXTRACTION IN 10 SECONDS — SECURE YOUR SALVAGE', '#7dff9a');
@@ -1528,7 +1506,7 @@ function onBossKilled(e){
     sfx(660,.4,'sine',.07,330); sfx(990,.5,'sine',.05,220);
     if(theme.id!=='prism' && allBaseConquered() && !SAVE.conquered.prism){
       setTimeout(()=>{
-        toast('◈ UNKNOWN SIGNAL DECRYPTED — A SIXTH WORLD APPEARS ON THE MAP', '#ff7ae8');
+        toast('◈ UNKNOWN SIGNAL DECRYPTED — A FOURTH WORLD APPEARS ON THE MAP', '#ff7ae8');
         sfx(1200,.5,'sine',.05,-600); sfx(1800,.7,'sine',.03,-900);
       }, 2800);
     }
@@ -1880,21 +1858,6 @@ function bossUpdate(e, dt, dv, d){
       sfx(900,.3,'sine',.05,-500);
     }
   }
-  else if(id==='nocturne'){
-    e.a1-=dt;
-    if(e.a1<=0){ e.a1=4.2;
-      boom(e.x,e.y,'#a06bff',20);
-      const a=rand(0,Math.PI*2), td=rand(360,520);
-      e.x=wrap(player.x+Math.cos(a)*td); e.y=wrap(player.y+Math.sin(a)*td);
-      boom(e.x,e.y,'#a06bff',20); rings.push({x:e.x,y:e.y,r:10,mr:100,ttl:.35,mt:.35,col:'#c49bff'});
-      sfx(1400,.2,'sine',.05,-1000);
-    }
-    e.spT-=dt;
-    if(e.spT<=0){ e.spT=.09; e.spA+=.5;
-      ebullets.push({x:e.x,y:e.y,vx:Math.cos(e.spA)*260,vy:Math.sin(e.spA)*260,dmg:e.dmg*.3,r:5,life:2.8,col:'#c49bff'});
-    }
-    spd = d>420? e.spd : 0;
-  }
   else if(id==='prism'){
     /* triple rainbow spiral */
     e.spT-=dt;
@@ -1919,28 +1882,6 @@ function bossUpdate(e, dt, dv, d){
       floats.push({x:e.x,y:e.y-70,txt:'REFLECTIONS SPLINTER',ttl:1,col:'#ff7ae8'});
     }
     spd = d>380 ? e.spd : e.spd*.3;
-  }
-  else if(id==='aurelia'){
-    e.chT-=dt;
-    if(e.chState==='walk'){
-      if(e.chT<=0){ e.chState='tele'; e.chT=.8;
-        const l=d||1; e.chDx=dv.x/l; e.chDy=dv.y/l;
-        sfx(90,.7,'sawtooth',.06,30);
-      }
-    }
-    else if(e.chState==='tele'){
-      spd=0;
-      if(e.chT<=0){ e.chState='charge'; e.chT=.75; shake=Math.min(shake+6,14); sfx(60,.5,'sawtooth',.08,-20); }
-    }
-    else if(e.chState==='charge'){
-      sx=e.chDx; sy=e.chDy; spd=640;
-      if(Math.random()<dt*40) parts.push({x:e.x+rand(-30,30),y:e.y+rand(-10,20),vx:rand(-40,40),vy:rand(-60,-10),ttl:.5,col:'#ffe08a',r:rand(2,5)});
-      if(e.chT<=0){ e.chState='walk'; e.chT=4.5; }
-    }
-    if(!e.spawnedAdd && e.hp<e.maxhp*.5){ e.spawnedAdd=true;
-      spawnEnemyAt('brute', e.x+60, e.y); spawnEnemyAt('brute', e.x-60, e.y);
-      floats.push({x:e.x,y:e.y-80,txt:'THE TOMB OPENS',ttl:1.4,col:'#ffe08a'});
-    }
   }
   return {sx,sy,spd};
 }
@@ -2445,7 +2386,7 @@ function renderSky(){
   /* distant planets — the known worlds */
   THEMES.forEach((t,i)=>{
     if(t.secret && !allBaseConquered()) return;
-    const [ux,uy]=DPLANETS[i];
+    const [ux,uy]=t.dp;
     const x=ux*W, y=uy*H, r=5+i%3*2;
     ctx.globalCompositeOperation='lighter';
     drawGlow(x,y,r*4,hexA(t.atmo,.18+.08*Math.abs(Math.sin(tGlobal*.7+i))));
@@ -3523,22 +3464,6 @@ function drawBoss(e,flash){
     drawGlow(0,-24,28,hexA('#7ad7ff',gl));
     ctx.globalCompositeOperation='source-over';
   }
-  else if(id==='nocturne'){
-    const gl=Math.random()<.06 ? .3 : 1;
-    ctx.globalAlpha*=gl;
-    ctx.fillStyle=flash?'#fff':vgrad(0,-64,0,4,'#241b42','#0d081f');
-    ctx.beginPath(); ctx.moveTo(0,-66); ctx.lineTo(16,-8); ctx.lineTo(8,6); ctx.lineTo(-8,6); ctx.lineTo(-16,-8); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle=hexA('#c49bff',.8); ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(0,-66); ctx.lineTo(16,-8); ctx.lineTo(8,6); ctx.lineTo(-8,6); ctx.lineTo(-16,-8); ctx.closePath(); ctx.stroke();
-    for(let i=0;i<2;i++){
-      const a=t*(i?1.4:-1);
-      ctx.strokeStyle=hexA('#a06bff',.5);
-      ctx.beginPath(); ctx.ellipse(0,-30, 30, 8, a, 0, 7); ctx.stroke();
-    }
-    const eg=.5+Math.sin(t*8)*.4;
-    ctx.fillStyle=hexA('#e0d0ff',eg); ctx.beginPath(); ctx.arc(0,-30,5,0,7); ctx.fill();
-    ctx.globalAlpha=1;
-  }
   else if(id==='prism'){
     const h=(t*60)%360, hq=Math.round(h/30)*30;
     for(let l=0;l<3;l++){
@@ -3559,29 +3484,6 @@ function drawBoss(e,flash){
     ctx.fillStyle=flash?'#fff':`hsl(${h},90%,80%)`;
     ctx.beginPath(); ctx.arc(0,-16,8,0,7); ctx.fill();
     ctx.fillStyle='#0a0512'; ctx.beginPath(); ctx.arc(0,-16,3.5,0,7); ctx.fill();
-  }
-  else if(id==='aurelia'){
-    const charging=e.chState==='charge', tele=e.chState==='tele';
-    if(tele && Math.floor(t*10)%2===0){ ctx.globalAlpha*=.7; }
-    ctx.fillStyle=flash?'#fff':vgrad(0,-46,0,8,'#d4a832','#6e5410');
-    ctx.beginPath(); ctx.ellipse(0,-18,36,26,0,0,7); ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(0,-44); ctx.lineTo(0,8); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(0,-18,36,26,0,0,7); ctx.stroke();
-    ctx.strokeStyle=flash?'#fff':'#8f6a24'; ctx.lineWidth=5; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(-24,-2); ctx.quadraticCurveTo(-40,4,-34,16); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(24,-2); ctx.quadraticCurveTo(40,4,34,16); ctx.stroke();
-    ctx.lineCap='butt';
-    const eg=charging? 1 : .5+Math.sin(t*4)*.3;
-    ctx.fillStyle=hexA(charging?'#ff4b4b':'#ffe08a',eg);
-    ctx.beginPath(); ctx.arc(-12,-6,4,0,7); ctx.fill();
-    ctx.beginPath(); ctx.arc(12,-6,4,0,7); ctx.fill();
-    if(tele){
-      ctx.strokeStyle=hexA('#ff4b4b',.5+Math.sin(t*20)*.3); ctx.lineWidth=3;
-      ctx.setLineDash([8,8]);
-      ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(e.chDx*220, -14+e.chDy*220); ctx.stroke();
-      ctx.setLineDash([]);
-    }
   }
 }
 
@@ -3686,9 +3588,9 @@ function buildHome(){
     wc.appendChild(d);
   });
   document.getElementById('conqCount').textContent =
-    SAVE.conquered.prism ? '★ ALL SIX WORLDS CONQUERED — THE SECTOR DREAMS QUIETLY ★' :
-    n===5 ? '★ SIGNAL DECRYPTED — A SIXTH WORLD AWAITS ★' :
-    'WORLDS CONQUERED: '+n+' / 5';
+    SAVE.conquered.prism ? '★ ALL FOUR WORLDS CONQUERED — THE SECTOR DREAMS QUIETLY ★' :
+    n===BASE_WORLDS.length ? '★ SIGNAL DECRYPTED — A FOURTH WORLD AWAITS ★' :
+    'WORLDS CONQUERED: '+n+' / '+BASE_WORLDS.length;
   document.getElementById('resLine').textContent='⬡ SCRAP BANK: '+SAVE.wallet+'   ⬢ '+TIERS[SAVE.homeTier].name;
   document.getElementById('svcRecord').textContent = SAVE.totKills>0
     ? 'SERVICE RECORD — '+SAVE.totKills+' KILLS · BEST ROUND '+SAVE.bestRound+' · BEST COMBO ×'+SAVE.bestCombo
@@ -3772,9 +3674,9 @@ function buildMissions(){
         <div class="orb" style="background:radial-gradient(circle at 35% 35%, #3a3a44, #101018);color:#555"></div>
         <h3 style="color:#667">???</h3>
         <div class="msub">ENCRYPTED SIGNAL</div>
-        <div class="threat" style="color:#667">THREAT ◈◈◈◈</div>
+        <div class="threat" style="color:#667">THREAT ◈◈◈</div>
         <div class="bossline" style="color:#556">☠ signature unknown</div>
-        <p style="color:#667">A sixth signature hums beneath the sector map at a frequency that shouldn’t exist. Decryption requires conquest of all five known worlds.</p>
+        <p style="color:#667">A fourth signature hums beneath the sector map at a frequency that shouldn’t exist. Decryption requires conquest of all three known worlds.</p>
         <div class="deploy" style="color:#667">▸ LOCKED</div>`;
       g.appendChild(d);
       return;
@@ -4010,27 +3912,6 @@ const TRACKS={
     const cut=(e===1 && s32>=26);
     if(!cut && e>0 && (b%2===0||b===7||b===13)) mBass(t,acid,.14,.18+e*.06,'sawtooth',600+e*300);
     if(e===0 && b%4===0) mBass(t,33,.3,.22,'sawtooth',400);
-  }},
-  /* dark synthwave */
-  nocturne:{ bpm:104, groove(b,t,e,s32){
-    if(e>0){ if(b===0||b===8) mKick(t,.68+e*.05); if(b===4||b===12) mSnare(t,.24+e*.06); }
-    else if(b===0) mKick(t,.5);
-    if(e>0 && b%2===0) mHat(t,false,.05);
-    const arp=[57,60,64,69,64,60][(s32%12)/2|0];
-    if(b%2===1 && e>0) mLead(t,arp+(e===2?12:0),.14,.04+e*.012,'triangle');
-    if(s32===0) mPad(t,[45,52,57],3.8,.035+e*.012);
-    if(s32===16 && e===2) mPad(t,[44,51,56],3.8,.045);
-  }},
-  /* desert doom */
-  aurelia:{ bpm:82, groove(b,t,e,s32){
-    if(e===0){ if(b===0) mKick(t,.65); }
-    else { if(b===0||b===6) mKick(t,.78+e*.08);
-      if(b===10) mBass(t,38,.18,.28,'triangle',400);
-      if(b===12) mSnare(t,.22+e*.04); }
-    const riff=[40,0,41,0,40,0,43,0,40,0,41,0,44,0,43,0][b];
-    const cut=(e===1 && s32>=26);
-    if(riff && !cut && e>0) mBass(t,riff-12,.4,.26+e*.07,'square',550+e*180);
-    if(s32===0) mPad(t,[40,47],4,.04);
   }},
   /* minimal tech house, psychedelic (secret world) */
   prism:{ bpm:126, groove(b,t,e,s32){
