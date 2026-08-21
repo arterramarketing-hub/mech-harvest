@@ -736,7 +736,7 @@ const TIERS=[
 /* ---- difficulty ---- */
 let missionDiff=1, lastFuelCost=0;
 const diffHpMul  = ()=>1+.35*(missionDiff-1);
-const diffDmgMul = ()=>1+.25*(missionDiff-1);
+const diffDmgMul = ()=>1+.18*(missionDiff-1);
 const diffLootMul= ()=>1+.35*(missionDiff-1);
 
 /* ================= WORLDS & BOSSES ================= */
@@ -771,13 +771,13 @@ const allBaseConquered = ()=>BASE_WORLDS.every(t=>SAVE.conquered[t.id]);
 }
 
 const BOSSES = {
-  verdant:  { name:'THE GARDENER',  hp:2400, spd:42, r:54, dmg:32, pts:800, col:'#46e08c',
+  verdant:  { name:'THE GARDENER',  hp:4000, spd:42, r:54, dmg:32, pts:800, col:'#46e08c',
               blurb:'Apex machine: THE GARDENER — seed-storm cultivator' },
-  cinder:   { name:'FORGEMASTER',   hp:2800, spd:36, r:56, dmg:37, pts:850, col:'#ff6b35',
+  cinder:   { name:'FORGEMASTER',   hp:4600, spd:36, r:56, dmg:37, pts:850, col:'#ff6b35',
               blurb:'Apex machine: FORGEMASTER — magma mortar artillery' },
-  glacia:   { name:'PERMAFROST',    hp:2500, spd:40, r:52, dmg:30, pts:820, col:'#7ad7ff',
+  glacia:   { name:'PERMAFROST',    hp:4200, spd:40, r:52, dmg:30, pts:820, col:'#7ad7ff',
               blurb:'Apex machine: PERMAFROST — cryo-lance sentinel' },
-  prism:    { name:'THE FRACTAL',   hp:3600, spd:50, r:50, dmg:39, pts:1200, col:'#ff7ae8',
+  prism:    { name:'THE FRACTAL',   hp:5800, spd:50, r:50, dmg:39, pts:1200, col:'#ff7ae8',
               blurb:'Apex machine: THE FRACTAL — kaleidoscope of mirrors' },
 };
 /* mid-mission radio chatter — pilot and apex machine trade words at rounds 3/5/7/9 */
@@ -857,7 +857,7 @@ let bossWarnT = 0;   // "ANOMALY INCOMING" banner timer
 /* kill-combo: chain kills to multiply scrap; taking hull damage breaks the streak */
 let combo=0, comboT=0, comboPop=0, comboBestRun=0;
 const COMBO_WINDOW=4;
-const comboMul=()=>combo>=30?2.5:combo>=15?2:combo>=8?1.5:combo>=4?1.25:1;
+const comboMul=()=>combo>=30?1.75:combo>=15?1.5:combo>=8?1.3:combo>=4?1.15:1;
 /* juice timers: hit-stop on heavy kills, slow-mo on apex kills */
 let hitStopT=0, slowmoT=0;
 let dmgDirs=[];                     // incoming-damage direction pings (screen-edge arcs)
@@ -879,15 +879,15 @@ const BURN_DUR=2.5, BURN_TICK=.5;   // ignited: keeps burning after you leave th
 /* ---- weapons (attachments — all owned fire together) ---- */
 const WEAPONS = [
   { id:'vulcan',  name:'VULCAN',   icon:'⣿', desc:'Rapid-fire autocannon. LV: fans out an extra round per level in a widening cone.',
-    owned:false, lvl:1, cost:420, upBase:260, rof:.095, dmg:6,  spd:760, drain:1.6, cap:100, regen:14, cdT:0, rel:1.4, reloadT:0 },
+    owned:false, lvl:1, cost:700, upBase:420, rof:.095, dmg:6,  spd:760, drain:1.6, cap:100, regen:14, cdT:0, rel:1.4, reloadT:0 },
   { id:'railgun', name:'RAILGUN',  icon:'━', desc:'Slow, devastating piercing slug.',
-    owned:false, lvl:1, cost:450, upBase:280, rof:.85,  dmg:62, spd:1500, drain:16, cap:100, regen:11, cdT:0, rel:1.7, reloadT:0 },
+    owned:false, lvl:1, cost:750, upBase:450, rof:.85,  dmg:62, spd:1500, drain:16, cap:100, regen:11, cdT:0, rel:1.7, reloadT:0 },
   { id:'swarm',   name:'SWARM',    icon:'⌁', desc:'Homing missiles w/ splash. LV: +1 missile every other level, faster & tighter tracking.',
-    owned:false, lvl:1, cost:650, upBase:300, rof:.3,   dmg:24, spd:190, drain:7,  cap:100, regen:10, cdT:0, rel:1.9, reloadT:0 },
+    owned:false, lvl:1, cost:1050, upBase:480, rof:.3,   dmg:24, spd:190, drain:7,  cap:100, regen:10, cdT:0, rel:1.9, reloadT:0 },
   { id:'aegis',   name:'AEGIS',    icon:'◍', desc:'Forcefield that repels & damages. Grows with level.',
-    owned:false, lvl:1, cost:550, upBase:280, rof:0,    dmg:26, spd:0,   drain:22, cap:100, regen:13, cdT:0, energyW:true },
+    owned:false, lvl:1, cost:900, upBase:450, rof:0,    dmg:26, spd:0,   drain:22, cap:100, regen:13, cdT:0, energyW:true },
   { id:'tesla',   name:'TESLA',    icon:'ϟ', desc:'Arc lightning chaining between hostiles.',
-    owned:false, lvl:1, cost:850, upBase:320, rof:.34,  dmg:19, spd:0,   drain:7,  cap:100, regen:12, cdT:0, energyW:true },
+    owned:false, lvl:1, cost:1400, upBase:520, rof:.34,  dmg:19, spd:0,   drain:7,  cap:100, regen:12, cdT:0, energyW:true },
 ];
 const wByid = id => WEAPONS.find(w=>w.id===id);
 const weaponDmg = w => w.dmg*(1+.22*(w.lvl-1))*(SAVE.homeTier>=3?1.1:1);
@@ -898,25 +898,25 @@ function tierCol(){ const t=totalLvls(); return t>=12?'#ffd700': t>=8?'#c49bff':
 
 /* ---- fusion tech (one per weapon pair, unlocked when both hit LV2, upgradeable) ---- */
 const COMBOS = [
-  { id:'seeker',     req:['vulcan','swarm'],   name:'SEEKER ROUNDS',   cost:600, upBase:450,
+  { id:'seeker',     req:['vulcan','swarm'],   name:'SEEKER ROUNDS',   cost:1000, upBase:450,
     desc:'Vulcan slugs curve toward hostiles. LV: sharper tracking.' },
-  { id:'sabot',      req:['vulcan','railgun'], name:'SABOT STORM',     cost:650, upBase:480,
+  { id:'sabot',      req:['vulcan','railgun'], name:'SABOT STORM',     cost:1100, upBase:480,
     desc:'Every few vulcan rounds, a piercing mini-slug. LV: more often.' },
-  { id:'volt',       req:['vulcan','tesla'],   name:'VOLT ROUNDS',     cost:620, upBase:460,
+  { id:'volt',       req:['vulcan','tesla'],   name:'VOLT ROUNDS',     cost:1050, upBase:460,
     desc:'Vulcan hits can arc lightning to a neighbor. LV: higher chance.' },
-  { id:'siphon',     req:['vulcan','aegis'],   name:'KINETIC SIPHON',  cost:600, upBase:450,
+  { id:'siphon',     req:['vulcan','aegis'],   name:'KINETIC SIPHON',  cost:1000, upBase:450,
     desc:'Bullets your field eats are fired back at the enemy. LV: harder returns.' },
-  { id:'detonator',  req:['railgun','swarm'],  name:'DETONATOR SLUGS', cost:750, upBase:520,
+  { id:'detonator',  req:['railgun','swarm'],  name:'DETONATOR SLUGS', cost:1250, upBase:520,
     desc:'Rail impacts explode for splash damage. LV: releases micro-missiles on impact.' },
-  { id:'prismlance', req:['railgun','tesla'],  name:'PRISM LANCE',     cost:800, upBase:560,
+  { id:'prismlance', req:['railgun','tesla'],  name:'PRISM LANCE',     cost:1350, upBase:560,
     desc:'The railgun becomes an instant energy beam. LV: wider beam.' },
-  { id:'bastion',    req:['railgun','aegis'],  name:'BASTION PULSE',   cost:700, upBase:500,
+  { id:'bastion',    req:['railgun','aegis'],  name:'BASTION PULSE',   cost:1200, upBase:500,
     desc:'Each rail shot detonates a repulsor wave around you. LV: bigger wave.' },
-  { id:'orbital',    req:['swarm','aegis'],    name:'ORBITAL GUARD',   cost:700, upBase:500,
+  { id:'orbital',    req:['swarm','aegis'],    name:'ORBITAL GUARD',   cost:1200, upBase:500,
     desc:'Active field auto-launches micro-missiles. LV: faster launches.' },
-  { id:'staticwar',  req:['swarm','tesla'],    name:'STATIC WARHEADS', cost:720, upBase:520,
+  { id:'staticwar',  req:['swarm','tesla'],    name:'STATIC WARHEADS', cost:1200, upBase:520,
     desc:'Missile blasts chain lightning. LV: longer chains.' },
-  { id:'static',     req:['aegis','tesla'],    name:'STATIC FIELD',    cost:680, upBase:500,
+  { id:'static',     req:['aegis','tesla'],    name:'STATIC FIELD',    cost:1150, upBase:500,
     desc:'The field lashes enemies inside with arcs. LV: faster, harder.' },
 ];
 COMBOS.forEach(c=>{ c.owned=false; c.lvl=0; c.announced=false; });
@@ -951,12 +951,12 @@ function detonate(x,y){
 
 /* ---- global upgrades ---- */
 const UPGRADES = [
-  { id:'ammo',  name:'REACTOR CELLS',  desc:'+25% ammo capacity & +20% regen', base:130, lvl:0, mult:1.5 },
-  { id:'hull',  name:'PLATE ARMOR',    desc:'+30 max hull (and repairs +30)', base:140, lvl:0, mult:1.5 },
-  { id:'spd',   name:'ACTUATORS',      desc:'+9% movement speed', base:120, lvl:0, mult:1.6 },
-  { id:'crit',  name:'TARGETING SUITE',desc:'+4% critical hit chance', base:160, lvl:0, mult:1.55 },
-  { id:'cell',  name:'SHIELD CELL',    desc:'+1 shield charge (max 3)', base:180, lvl:0, mult:1.4 },
-  { id:'repair',name:'FIELD REPAIR',   desc:'Restore hull to full', base:100, lvl:0, mult:1.25 },
+  { id:'ammo',  name:'REACTOR CELLS',  desc:'+25% ammo capacity & +20% regen', base:200, lvl:0, mult:1.6 },
+  { id:'hull',  name:'PLATE ARMOR',    desc:'+30 max hull (and repairs +30)', base:220, lvl:0, mult:1.6 },
+  { id:'spd',   name:'ACTUATORS',      desc:'+9% movement speed', base:190, lvl:0, mult:1.7 },
+  { id:'crit',  name:'TARGETING SUITE',desc:'+4% critical hit chance', base:250, lvl:0, mult:1.65 },
+  { id:'cell',  name:'SHIELD CELL',    desc:'+1 shield charge (max 3)', base:260, lvl:0, mult:1.45 },
+  { id:'repair',name:'FIELD REPAIR',   desc:'Restore hull to full', base:140, lvl:0, mult:1.3 },
 ];
 const upgCost = u => Math.round(u.base * Math.pow(u.mult, u.lvl));
 const UPG = id => UPGRADES.find(u=>u.id===id);
@@ -1074,12 +1074,12 @@ function buildWave(n){
     q.push('bunker');
     return q;
   }
-  push('drone', 5 + n*2);
-  if(n>=2) push('spider', 4 + n*2.2);   // spider-bot horde — many, fast, weak
-  if(n>=2) push('bomber', 1 + n*0.9);
-  if(n>=3) push('stinger', n*0.8);
+  push('drone', 6 + n*2.6);
+  if(n>=2) push('spider', 5 + n*3);     // spider-bot horde — many, fast, weak
+  if(n>=2) push('bomber', 1 + n*1.1);
+  if(n>=3) push('stinger', n*1.0);
   if(n>=3 && n!==10) push('emp', Math.min(3, n*0.35));
-  if(n>=4) push('brute', n*0.5);
+  if(n>=4) push('brute', n*0.65);
   if(n>=4 && n!==10) push('medic', Math.min(2.4, .5 + n*.18));
   for(let i=q.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [q[i],q[j]]=[q[j],q[i]]; }
   if(n>=2 && n!==10) q.push('bunker');   // fortified structure — level it for a nuke core (no structures in the boss round)
@@ -1113,7 +1113,7 @@ function spawnEnemyAt(type,x,y){
     return;
   }
   const bp=ETYPES[type];
-  const hpScale = (1 + .22*(round-1))*tMul, dmgScale = (1 + .08*(round-1))*tDmg;
+  const hpScale = (1 + .26*(round-1))*tMul, dmgScale = (1 + .09*(round-1))*tDmg;
   /* elite variants — gold champions: tougher, meaner, 3x scrap, likely powerup drop */
   const canElite = round>=3 && type!=='spider' && type!=='emp' && type!=='bunker';
   let eliteCh = Math.min(.16, .015*round + .03*(missionDiff-1));
@@ -1446,7 +1446,7 @@ function damageEnemy(e, amt, showNum, crit){
     combo++; comboT=COMBO_WINDOW; comboPop=.25;
     if(combo>comboBestRun) comboBestRun=combo;
     if(crit || e.type==='brute' || e.type==='bunker') hitStopT=Math.max(hitStopT,.05);   // heavy-kill hit-stop
-    const val=Math.round(e.pts*(1+.09*(round-1))*diffLootMul()*comboMul());
+    const val=Math.round(e.pts*(1+.05*(round-1))*diffLootMul()*comboMul());
     dropScrap(e.x, e.y, val);
     deathSfx(e.type);
     boom(e.x, e.y, e.col, e.type==='boss'?50:e.type==='brute'?24:13);
@@ -1751,7 +1751,7 @@ function doRevive(){
 function collectPickup(p){
   p.dead=true;
   if(p.type==='crate'){
-    const c=Math.round((80+round*30+rand(0,50))*diffLootMul());
+    const c=Math.round((50+round*18+rand(0,40))*diffLootMul());
     credits+=c; totalCred+=c;
     floats.push({x:p.x, y:p.y-30, txt:'SUPPLY CRATE +'+c+'', ttl:1.4, col:'#ffae33'});
     boom(p.x,p.y,'#ffae33',16); rings.push({x:p.x,y:p.y,r:6,mr:70,ttl:.35,mt:.35,col:'#ffae33'});
@@ -2039,7 +2039,7 @@ function update(dt){
     spawnTimer-=dt;
     if(spawnTimer<=0){
       let alive=0; for(const e of enemies) if(!e.dead && e.type!=='boss') alive++;
-      const floor=Math.min(5+round*2, 24);      // how many hostiles should be on you at all times
+      const floor=Math.min(6+round*2.5, 30);    // how many hostiles should be on you at all times
       const starving=alive<floor;
       const burst=starving?3:2;
       for(let i=0;i<burst && spawnQueue.length;i++) spawnEnemy(spawnQueue.pop());
@@ -2367,7 +2367,7 @@ function update(dt){
     for(const s of scrap){ salvage+=s.val; }
     scrap=[];
     if(salvage>0){ credits+=salvage; totalCred+=salvage; toast('SALVAGE SECURED +'+salvage+'', '#ffae33'); }
-    const bonus=Math.round((60+round*40)*diffLootMul()); credits+=bonus; totalCred+=bonus;
+    const bonus=Math.round((40+round*22)*diffLootMul()); credits+=bonus; totalCred+=bonus;
     checkComboAnnounce();
     shopPending=true; shopTimer=1; shopBonus=bonus;
   }
@@ -3738,7 +3738,7 @@ function renderShop(bonus){
         sfx(700,.12,'sine',.05,300); b.blur(); renderShop(0); };
       d.appendChild(b);
     } else {
-      const cost=Math.round(w.upBase*Math.pow(1.6,w.lvl-1));
+      const cost=Math.round(w.upBase*Math.pow(2,w.lvl-1));
       d.innerHTML=`<h3>${w.icon} ${w.name} <span class="lvl">LV ${w.lvl}</span></h3><p>+22% damage, +10% rate${w.id==='aegis'?', +field radius':w.id==='tesla'?', +1 chain':''} — and flashier fire.</p>`;
       const b=document.createElement('button'); b.className='btn buy'; b.textContent='UPGRADE — '+cost+'';
       b.disabled = credits<cost;
