@@ -11,10 +11,22 @@
 <title>MECH HARVEST — Planetary Mech Survival</title>
 <style>
   :root{
-    --amber:#ffae33; --cyan:#4be0e8; --red:#ff4b4b; --steel:#8f9aa8;
+    /* ---- four semantic roles. Every piece of UI chrome uses one of these,
+           so a colour always means the same thing:
+             amber  = resources & progress   cyan   = your mech's systems
+             red    = danger, only danger    fusion = fusion tech            ---- */
+    --amber:#ffae33; --cyan:#4be0e8; --red:#ff4b4b; --fusion:#c49bff;
+    --ok:#7dff9a;                         /* confirmation only */
+    --text:#e7edf5; --dim:#8b99ad; --faint:#5f6b7c;
+    --steel:#8f9aa8;
     --bg:#07090e;
     --glass:rgba(14,20,32,.52);
     --glassline:rgba(255,255,255,.13);
+    /* ---- four type steps. Nothing off-scale. ---- */
+    --t1:10px;   /* labels */
+    --t2:13px;   /* body */
+    --t3:17px;   /* section heads */
+    --t4:24px;   /* screen titles */
   }
   *{margin:0;padding:0;box-sizing:border-box;user-select:none}
   html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:#cfd6e0;
@@ -32,22 +44,9 @@
   /* touch controls (shown once a touch is detected) */
   #touchui{position:fixed;right:18px;bottom:170px;display:none;flex-direction:column;gap:14px;z-index:6}
   body.touch #touchui{display:flex}
-  .tbtn{width:60px;height:60px;border-radius:50%;font-size:20px;color:var(--cyan);border:1px solid var(--cyan);
+  .tbtn{width:60px;height:60px;border-radius:50%;font-size:var(--t4);color:var(--cyan);border:1px solid var(--cyan);
     background:rgba(24,34,52,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);pointer-events:auto}
   .tbtn:active{background:var(--cyan);color:#06131a}
-  @media (max-width:860px){
-    #barsbox{width:210px;padding:8px 10px;left:10px;bottom:10px}
-    #slots{right:10px;bottom:10px;gap:4px}
-    .slot{width:52px;height:48px;padding-top:3px}
-    .slot .icon{font-size:14px;line-height:18px}
-    .slot .nm{font-size:6px}
-    #topbar{font-size:9px;gap:10px;padding:5px 10px;top:6px;max-width:96vw;flex-wrap:wrap;justify-content:center}
-    #bossbar{width:300px;top:52px}
-    #comms{width:90vw;bottom:160px}
-    #touchui{bottom:210px}
-    .panel{padding:18px 14px}
-    h1{font-size:24px}
-  }
   .mono{font-family:Consolas,'Courier New',monospace}
 
   /* ---------- compact touch HUD ----------
@@ -58,44 +57,54 @@
   body.touch .tOnlyI{display:inline!important}
   /* in-play HUD stripped to the bone — full stats live in the pause menu */
   body.touch #topbar{display:none}
-  body.touch #slots{display:none}
+  body.touch #slots{display:flex;gap:3px;margin-top:6px}
+  body.touch .slot{height:30px;padding-top:2px}
+  body.touch .slot .icon{font-size:var(--t1);line-height:11px}
+  body.touch .slot .nm{display:none}
+  body.touch .slot .lv{font-size:var(--t1);line-height:10px}
+  body.touch .slot .lvf{display:none}
+  body.touch .slot .lvt{display:inline}
+  body.touch .slot .mini{bottom:2px;height:2px;left:3px;right:3px}
+  body.touch .slot.locked::after{font-size:7px;top:1px;right:2px}
+  body.touch #mechhead{margin-bottom:4px;font-size:var(--t1)}
+  body.touch #mechhead #uiLevel2{font-size:var(--t1)}
   body.touch #bossbar{width:min(280px,72vw);top:17px;padding:4px 10px}
-  body.touch #bossname{font-size:8px;letter-spacing:2px;margin-bottom:2px}
-  body.touch #barsbox{width:130px;padding:5px 6px;left:8px;bottom:8px;border-radius:8px}
+  body.touch #bossname{font-size:var(--t1);letter-spacing:2px;margin-bottom:2px}
+  body.touch #barsbox{width:152px;padding:6px 7px;left:8px;bottom:8px;border-radius:8px}
   body.touch .barlabel{display:none}
   body.touch .bar{height:7px;margin-bottom:4px;border-radius:3px;border:none}
   body.touch .bar .num{display:none}
   body.touch #toasts{top:10px;right:8px;gap:5px;max-width:210px}
-  body.touch .toast{font-size:9px;padding:6px 10px;letter-spacing:.5px}
+  body.touch .toast{font-size:var(--t1);padding:6px 10px;letter-spacing:.5px}
   body.touch #comms{width:min(430px,84vw);bottom:auto;top:40px;padding:8px 12px}
   body.touch #comms::after{display:none}
   body.touch #commsAvatar{width:26px;height:26px}
-  body.touch #commsName{font-size:8px;margin-bottom:2px}
-  body.touch #commsText{font-size:10px;min-height:26px;line-height:1.4}
+  body.touch #commsName{font-size:var(--t1);margin-bottom:2px}
+  body.touch #commsText{font-size:var(--t1);min-height:26px;line-height:1.4}
   body.touch #touchui{right:12px;bottom:118px;gap:10px}
-  body.touch .tbtn{width:52px;height:52px;font-size:17px}
+  body.touch .tbtn{width:52px;height:52px;font-size:var(--t3)}
   /* menus on touch */
   body.touch .panel{padding:16px 14px;max-height:96vh;border-radius:10px}
-  body.touch h1{font-size:22px;letter-spacing:4px}
-  body.touch h2{font-size:15px;letter-spacing:3px;margin-bottom:8px}
-  body.touch .sub{font-size:10px;margin-bottom:12px}
-  body.touch .controls{font-size:11px;line-height:1.7;margin:10px auto}
-  body.touch .btn{padding:9px 18px;font-size:12px}
+  body.touch h1{font-size:var(--t4);letter-spacing:4px}
+  body.touch h2{font-size:var(--t3);letter-spacing:3px;margin-bottom:8px}
+  body.touch .sub{font-size:var(--t1);margin-bottom:12px}
+  body.touch .controls{font-size:var(--t2);line-height:1.7;margin:10px auto}
+  body.touch .btn{padding:9px 18px;font-size:var(--t2)}
   body.touch .char{width:150px;padding:12px 10px}
   body.touch .char p{min-height:0}
   body.touch .mission{width:250px;padding:12px}
-  body.touch .mission p{min-height:0;font-size:10.5px}
+  body.touch .mission p{min-height:0;font-size:var(--t1)}
   body.touch #draftgrid{gap:7px}
   body.touch .card{width:min(215px,44vw);padding:10px 10px;border-radius:8px}
-  body.touch .card h3{font-size:12px;margin-bottom:4px}
-  body.touch .card p{font-size:10px;min-height:0;margin-bottom:6px;line-height:1.35}
-  body.touch .card .ctag{font-size:7.5px;margin-bottom:3px}
-  body.touch .item{padding:6px 8px;font-size:9.5px;border-radius:6px}
-  body.touch .item h3{font-size:10.5px;margin-bottom:2px}
+  body.touch .card h3{font-size:var(--t2);margin-bottom:4px}
+  body.touch .card p{font-size:var(--t1);min-height:0;margin-bottom:6px;line-height:1.35}
+  body.touch .card .ctag{font-size:var(--t1);margin-bottom:3px}
+  body.touch .item{padding:6px 8px;font-size:var(--t1);border-radius:6px}
+  body.touch .item h3{font-size:var(--t1);margin-bottom:2px}
   body.touch .item p{min-height:0;margin-bottom:4px;line-height:1.25}
-  body.touch .item .buy{padding:4px 0;font-size:10px}
-  body.touch .item .lvl{font-size:8px}
-  body.touch .statline{font-size:12px;margin:5px 0}
+  body.touch .item .buy{padding:4px 0;font-size:var(--t1)}
+  body.touch .item .lvl{font-size:var(--t1)}
+  body.touch .statline{font-size:var(--t2);margin:5px 0}
   body.touch #draft .panel{max-width:96vw;padding:12px 10px}
 
   .glass{background:linear-gradient(155deg, rgba(58,74,106,.34), rgba(14,20,34,.28));
@@ -110,43 +119,48 @@
   #xpfill{height:100%;width:0%;background:linear-gradient(90deg,#8a6a1f,#ffd23b 70%,#fff2b0);
     box-shadow:0 0 12px rgba(255,210,59,.5);transition:width .12s linear}
   #xptext{position:absolute;left:0;right:0;top:0;line-height:16px;text-align:center;
-    font-size:9px;letter-spacing:2px;color:#fff6d8;text-shadow:0 1px 2px #000}
+    font-size:var(--t1);letter-spacing:2px;color:#fff6d8;text-shadow:0 1px 2px #000}
   body.touch #xpwrap{height:11px}
-  body.touch #xptext{line-height:11px;font-size:7.5px;letter-spacing:1.5px}
+  body.touch #xptext{line-height:11px;font-size:var(--t1);letter-spacing:1.5px}
   /* ---------- HUD ---------- */
   #hud{position:fixed;left:0;right:0;top:0;bottom:0;pointer-events:none;display:none}
   #topbar{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;gap:24px;align-items:center;
-    border-radius:10px;padding:9px 24px;font-size:13px;letter-spacing:1px}
+    border-radius:10px;padding:9px 24px;font-size:var(--t2);letter-spacing:1px}
   #topbar b{color:var(--amber)}
-  #topbar #uiLives{color:var(--cyan);letter-spacing:3px}
   #bossbar{position:absolute;top:64px;left:50%;transform:translateX(-50%);width:420px;border-radius:10px;padding:8px 14px;display:none}
-  #bossname{font-size:10px;letter-spacing:3px;color:#ffb0c8;margin-bottom:4px;text-align:center}
+  #bossname{font-size:var(--t1);letter-spacing:3px;color:#ffb0c8;margin-bottom:4px;text-align:center}
   #bossbar .bar{margin-bottom:0}
   #bossfill{background:linear-gradient(90deg,#8a2b5e,#ff4b8a);width:100%}
-  #barsbox{position:absolute;left:20px;bottom:20px;width:312px;border-radius:12px;padding:12px 14px}
-  .barlabel{font-size:10px;letter-spacing:2px;margin-bottom:3px;color:#aab8ca}
+  #barsbox{position:absolute;left:20px;bottom:20px;width:300px;border-radius:12px;padding:11px 13px}
+  .barlabel{font-size:var(--t1);letter-spacing:2px;margin-bottom:3px;color:var(--dim)}
   .bar{height:15px;background:rgba(6,10,16,.6);border:1px solid rgba(255,255,255,.09);border-radius:4px;overflow:hidden;margin-bottom:9px;position:relative}
   .bar .fill{height:100%;transition:width .08s linear}
   #hpfill{background:linear-gradient(90deg,#c0392b,#ff6b4b);width:100%}
   #ammofill{background:linear-gradient(90deg,#8a6a1f,#ffd23b);width:100%}
   #shieldfill{background:linear-gradient(90deg,#1f8f96,#4be0e8);width:0%}
-  .bar .num{position:absolute;right:6px;top:0;line-height:15px;font-size:10px;color:#e7edf5;text-shadow:0 1px 2px #000}
-  #slots{position:absolute;right:20px;bottom:20px;display:flex;gap:8px}
-  .slot{width:74px;height:64px;border-radius:8px;text-align:center;padding-top:5px;position:relative}
-  .slot .icon{font-size:19px;line-height:24px}
-  .slot .nm{font-size:8px;letter-spacing:1px;color:#aab8ca}
-  .slot .lv{font-size:8px;letter-spacing:1px;color:var(--amber)}
+  .bar .num{position:absolute;right:6px;top:0;line-height:15px;font-size:var(--t1);color:var(--text);text-shadow:0 1px 2px #000}
+  #slots{display:flex;gap:5px;margin-top:9px}
+  #mechhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;
+    font-size:var(--t1);letter-spacing:2px}
+  #mechhead #uiLevel2{color:var(--amber);font-weight:bold;font-size:var(--t2)}
+  #mechhead #uiMechs{color:var(--cyan);letter-spacing:3px}
+  .slot{flex:1;height:53px;border-radius:6px;text-align:center;padding-top:4px;position:relative;
+    background:rgba(10,16,26,.5);border:1px solid rgba(255,255,255,.08);overflow:hidden}
+  .slot .icon{font-size:var(--t2);line-height:16px}
+  .slot .nm{font-size:var(--t1);letter-spacing:.5px;color:var(--dim)}
+  .slot .lv{font-size:var(--t1);letter-spacing:.5px;color:var(--amber);white-space:nowrap;overflow:hidden}
+  .slot .lvt{display:none}
   .slot.locked{opacity:.38}
-  .slot.locked::after{content:'🔒';position:absolute;top:2px;right:4px;font-size:10px}
-  .slot .mini{position:absolute;bottom:3px;left:6px;right:6px;height:3px;background:rgba(6,10,16,.7)}
+  .slot.locked::after{content:'🔒';position:absolute;top:2px;right:4px;font-size:var(--t1)}
+  .slot .mini{position:absolute;bottom:3px;left:5px;right:5px;height:3px;background:rgba(6,10,16,.7)}
   .slot .mini i{display:block;height:100%;background:var(--cyan)}
 
   /* hull-critical warning */
   #critwarn{position:absolute;top:17%;left:50%;display:none;pointer-events:none;white-space:nowrap;
-    font-size:21px;font-weight:bold;letter-spacing:6px;color:#ff4b4b;
+    font-size:var(--t4);font-weight:bold;letter-spacing:6px;color:#ff4b4b;
     text-shadow:2px 0 rgba(75,224,232,.8),-2px 0 rgba(255,75,75,.9),0 0 22px rgba(255,40,40,.7);
     animation:critglitch .48s steps(2,jump-none) infinite}
-  body.touch #critwarn{font-size:12px;letter-spacing:3px;top:20%}
+  body.touch #critwarn{font-size:var(--t2);letter-spacing:3px;top:20%}
   @keyframes critglitch{
     0%  {transform:translateX(-50%) skewX(0deg);opacity:1}
     20% {transform:translateX(calc(-50% + 4px)) skewX(-4deg);opacity:.65}
@@ -157,31 +171,31 @@
   }
 
   /* toasts */
-  #toasts{position:fixed;top:70px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:30;pointer-events:none;max-width:320px}
-  .toast{border-radius:8px;padding:10px 16px;font-size:12px;letter-spacing:1px;border-left:3px solid var(--amber);
-    animation:toastin .25s ease-out;color:#e7edf5}
+  #toasts{position:fixed;top:70px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:40;pointer-events:none;max-width:320px}
+  .toast{border-radius:8px;padding:10px 16px;font-size:var(--t2);letter-spacing:1px;border-left:3px solid var(--amber);
+    animation:toastin .25s ease-out;color:var(--text)}
   @keyframes toastin{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
   .toast.out{transition:.4s;opacity:0;transform:translateX(30px)}
 
   /* first-run coach bar — one instruction at a time, bottom centre */
-  #tut{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);display:none;z-index:26;
-    pointer-events:none;border-radius:10px;padding:11px 22px;font-size:13px;letter-spacing:2px;
+  #tut{position:fixed;left:50%;bottom:212px;transform:translateX(-50%);display:none;z-index:9;
+    pointer-events:none;border-radius:10px;padding:11px 22px;font-size:var(--t2);letter-spacing:2px;
     color:#fff6d8;border:1px solid rgba(255,210,59,.45);white-space:nowrap;max-width:94vw;
     box-shadow:0 6px 26px rgba(0,0,0,.5)}
   #tut.show{display:block;animation:tutin .3s ease-out}
-  #tut.hit{color:#7dff9a;border-color:rgba(125,255,154,.6)}
+  #tut.hit{color:var(--ok);border-color:rgba(125,255,154,.6)}
   @keyframes tutin{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%)}}
-  body.touch #tut{font-size:10.5px;letter-spacing:1.5px;padding:8px 14px;bottom:76px}
+  body.touch #tut{font-size:var(--t1);letter-spacing:1.5px;padding:8px 14px;bottom:82px}
 
   /* comms speech bubble */
   #comms{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);width:500px;border-radius:12px;padding:14px 18px;
-    display:none;z-index:25;pointer-events:none}
+    display:none;z-index:8;pointer-events:none}
   #comms::after{content:'';position:absolute;bottom:-10px;left:50%;margin-left:-10px;border:10px solid transparent;
     border-bottom:none;border-top-color:rgba(14,20,32,.75)}
   #comms .row{display:flex;gap:12px;align-items:flex-start}
   #commsAvatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;box-shadow:0 0 12px currentColor}
-  #commsName{font-size:10px;letter-spacing:2px;color:#8b99ad;margin-bottom:4px}
-  #commsText{font-size:13px;line-height:1.5;color:#e7edf5;min-height:38px}
+  #commsName{font-size:var(--t1);letter-spacing:2px;color:var(--dim);margin-bottom:4px}
+  #commsText{font-size:var(--t2);line-height:1.5;color:var(--text);min-height:38px}
   #commsText .cursor{animation:blink .6s infinite}
   @keyframes blink{50%{opacity:0}}
 
@@ -189,50 +203,61 @@
   .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,6,10,.32);z-index:10;
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
   .panel{border-radius:14px;padding:34px 44px;max-width:1020px;width:94%;max-height:94vh;overflow-y:auto}
-  h1{font-size:34px;letter-spacing:6px;color:var(--amber);margin-bottom:6px;text-align:center}
-  h2{font-size:20px;letter-spacing:4px;color:var(--amber);margin-bottom:14px}
-  .sub{text-align:center;color:#8b99ad;letter-spacing:2px;font-size:12px;margin-bottom:22px}
+  h1{font-size:var(--t4);letter-spacing:6px;color:var(--amber);margin-bottom:6px;text-align:center}
+  h2{font-size:var(--t4);letter-spacing:4px;color:var(--amber);margin-bottom:14px}
+  .sub{text-align:center;color:var(--dim);letter-spacing:2px;font-size:var(--t2);margin-bottom:22px}
   .btn{pointer-events:auto;cursor:pointer;background:rgba(24,34,52,.7);border:1px solid var(--cyan);color:var(--cyan);
-    padding:10px 26px;border-radius:6px;font-size:14px;letter-spacing:2px;transition:.15s;backdrop-filter:blur(8px)}
+    padding:10px 26px;border-radius:6px;font-size:var(--t2);letter-spacing:2px;transition:.15s;backdrop-filter:blur(8px)}
   .btn:hover{background:var(--cyan);color:#06131a}
   .btn.amber{border-color:var(--amber);color:var(--amber)}
+  /* pause menu hierarchy: one obvious primary action, settings grouped,
+     the run-ending action set apart and marked as destructive */
+  .btnbig{display:block;margin:4px auto 14px;min-width:230px;padding:14px 26px;font-size:var(--t3);font-weight:bold}
+  .setgrid{display:flex;gap:8px;justify-content:center;margin-bottom:18px;flex-wrap:wrap}
+  .btnset{font-size:var(--t2);padding:8px 14px;letter-spacing:1.5px;min-width:150px}
+  .btndanger{border-color:rgba(255,75,75,.5);color:#ff8f8f;background:rgba(60,16,16,.4);
+    font-size:var(--t2);padding:7px 18px;letter-spacing:1.5px}
+  .btndanger:hover{background:var(--red);color:#2a0808;border-color:var(--red)}
+  body.touch .btnbig{min-width:180px;padding:11px 20px;font-size:var(--t2);margin-bottom:10px}
+  body.touch .setgrid{margin-bottom:12px;gap:6px}
+  body.touch .btnset{font-size:var(--t1);min-width:128px;padding:7px 10px}
   .btn.amber:hover{background:var(--amber);color:#1a1206}
   .btn:disabled{opacity:.35;cursor:default}
   .btn:disabled:hover{background:rgba(24,34,52,.7);color:var(--cyan)}
   .center{text-align:center}
-  .controls{margin:18px auto;font-size:13px;line-height:1.9;color:#a5b4c8;max-width:580px}
-  .controls b{color:#e7edf5}
+  .controls{margin:18px auto;font-size:var(--t2);line-height:1.9;color:var(--dim);max-width:580px}
+  .controls b{color:var(--text)}
   #worldchips{display:flex;gap:10px;justify-content:center;margin:14px 0 6px}
-  .wchip{width:64px;text-align:center;font-size:9px;letter-spacing:1px;color:#7e8ca0}
+  .wchip{width:64px;text-align:center;font-size:var(--t1);letter-spacing:1px;color:var(--dim)}
   .wchip .dot{width:26px;height:26px;border-radius:50%;margin:0 auto 5px;opacity:.35}
-  .wchip.done{color:#7dff9a}
+  .wchip.done{color:var(--ok)}
   .wchip.done .dot{opacity:1;box-shadow:0 0 12px currentColor}
-  .wchip.done .tick{color:#7dff9a}
+  .wchip.done .tick{color:var(--ok)}
 
   /* hangar */
   #hangargrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
   .char{width:180px;border-radius:12px;padding:16px 14px;cursor:pointer;transition:.15s;text-align:center}
   .char:hover{transform:translateY(-3px);border-color:var(--amber)}
   .char .corb{width:56px;height:56px;border-radius:50%;margin:0 auto 10px;box-shadow:0 0 20px currentColor;
-    display:flex;align-items:center;justify-content:center;font-size:24px}
-  .char h3{font-size:15px;letter-spacing:2px;margin-bottom:2px}
-  .char .cw{font-size:10px;letter-spacing:2px;color:#8b99ad;margin-bottom:8px}
-  .char p{font-size:10.5px;line-height:1.5;color:#9dabc0;min-height:64px;margin-bottom:6px}
-  .char .bonus{font-size:10px;color:var(--cyan);letter-spacing:1px}
+    display:flex;align-items:center;justify-content:center;font-size:var(--t4)}
+  .char h3{font-size:var(--t3);letter-spacing:2px;margin-bottom:2px}
+  .char .cw{font-size:var(--t1);letter-spacing:2px;color:var(--dim);margin-bottom:8px}
+  .char p{font-size:var(--t1);line-height:1.5;color:var(--dim);min-height:64px;margin-bottom:6px}
+  .char .bonus{font-size:var(--t1);color:var(--cyan);letter-spacing:1px}
 
   /* mission select */
   #missiongrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:8px}
   .mission{width:288px;border-radius:12px;padding:16px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
   .mission:hover{border-color:var(--amber);transform:translateY(-3px)}
   .mission .orb{width:54px;height:54px;border-radius:50%;float:right;margin-left:8px;box-shadow:0 0 18px currentColor;position:relative}
-  .mission h3{font-size:16px;letter-spacing:2px;color:#e7edf5;margin-bottom:2px}
-  .mission .msub{font-size:10px;letter-spacing:2px;color:#8b99ad;margin-bottom:6px}
-  .mission .threat{font-size:11px;color:var(--red);letter-spacing:2px;margin-bottom:6px}
-  .mission .bossline{font-size:10px;letter-spacing:1px;color:#ff8ab0;margin-bottom:8px}
-  .mission p{font-size:11.5px;line-height:1.55;color:#9dabc0;margin-bottom:10px;min-height:88px}
-  .mission .deploy{font-size:11px;letter-spacing:2px;color:var(--amber)}
-  .mission .conq{position:absolute;top:10px;left:14px;font-size:10px;letter-spacing:2px;color:#7dff9a;
-    border:1px solid #7dff9a;border-radius:4px;padding:2px 8px;background:rgba(20,60,35,.5)}
+  .mission h3{font-size:var(--t3);letter-spacing:2px;color:var(--text);margin-bottom:2px}
+  .mission .msub{font-size:var(--t1);letter-spacing:2px;color:var(--dim);margin-bottom:6px}
+  .mission .threat{font-size:var(--t2);color:var(--red);letter-spacing:2px;margin-bottom:6px}
+  .mission .bossline{font-size:var(--t1);letter-spacing:1px;color:#ff8ab0;margin-bottom:8px}
+  .mission p{font-size:var(--t2);line-height:1.55;color:var(--dim);margin-bottom:10px;min-height:88px}
+  .mission .deploy{font-size:var(--t2);letter-spacing:2px;color:var(--amber)}
+  .mission .conq{position:absolute;top:10px;left:14px;font-size:var(--t1);letter-spacing:2px;color:var(--ok);
+    border:1px solid var(--ok);border-radius:4px;padding:2px 8px;background:rgba(20,60,35,.5)}
 
   /* upgrade draft cards */
   #draftgrid{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
@@ -240,19 +265,39 @@
     border:1px solid var(--glassline);text-align:left}
   .card:hover{transform:translateY(-4px);border-color:var(--amber);box-shadow:0 10px 30px rgba(0,0,0,.45)}
   .card.combo{border-color:rgba(196,155,255,.45)}
-  .card .ctag{font-size:8.5px;letter-spacing:2.5px;margin-bottom:6px;font-family:Consolas,monospace}
-  .card h3{font-size:15px;letter-spacing:1px;margin-bottom:7px;line-height:1.25}
-  .card p{font-size:11.5px;line-height:1.5;color:#9dabc0;min-height:62px;margin-bottom:10px}
-  .card .ctake{font-size:10px;letter-spacing:2px;font-family:Consolas,monospace}
-  .item{border-radius:8px;padding:10px 12px;font-size:12px}
+  .card .ctag{font-size:var(--t1);letter-spacing:2.5px;margin-bottom:6px;font-family:Consolas,monospace}
+  .card h3{font-size:var(--t3);letter-spacing:1px;margin-bottom:7px;line-height:1.25}
+  .card p{font-size:var(--t2);line-height:1.5;color:var(--dim);min-height:62px;margin-bottom:10px}
+  .card .ctake{font-size:var(--t1);letter-spacing:2px;font-family:Consolas,monospace}
+  .item{border-radius:8px;padding:10px 12px;font-size:var(--t2)}
   .item.combo{border-color:rgba(196,155,255,.5)}
-  .item.combo h3{color:#c49bff}
-  .item h3{font-size:13px;color:#e7edf5;letter-spacing:1px;margin-bottom:3px}
-  .item p{color:#94a4b8;margin-bottom:8px;min-height:28px;line-height:1.35}
-  .item .buy{width:100%;padding:6px 0;font-size:12px}
-  .item .lvl{color:var(--cyan);font-size:10px}
-  .statline{font-size:15px;margin:8px 0;color:#a5b4c8}
+  .item.combo h3{color:var(--fusion)}
+  .item h3{font-size:var(--t2);color:var(--text);letter-spacing:1px;margin-bottom:3px}
+  .item p{color:var(--dim);margin-bottom:8px;min-height:28px;line-height:1.35}
+  .item .buy{width:100%;padding:6px 0;font-size:var(--t2)}
+  .item .lvl{color:var(--cyan);font-size:var(--t1)}
+  .statline{font-size:var(--t3);margin:8px 0;color:var(--dim)}
   .statline b{color:var(--amber)}
+
+  /* ---------- narrow viewports (small laptops, tablets) ----------
+     must live after the base rules it overrides: same specificity, so source order decides. */
+  @media (max-width:860px){
+    #barsbox{width:230px;padding:8px 10px;left:10px;bottom:10px}
+    #slots{gap:3px;margin-top:7px}
+    .slot{height:39px;padding-top:3px}
+    .slot .icon{font-size:var(--t2);line-height:14px}
+    .slot .nm{display:none}
+    .slot .lv{line-height:11px}
+    .slot .lvf{display:none}
+    .slot .lvt{display:inline}
+    /* below the 16px XP meter, not on top of it */
+    #topbar{font-size:var(--t1);gap:10px;padding:5px 10px;top:20px;max-width:96vw;flex-wrap:wrap;justify-content:center}
+    #bossbar{width:300px;top:56px}
+    #comms{width:90vw;bottom:160px}
+    #touchui{bottom:210px}
+    .panel{padding:18px 14px}
+    h1{font-size:var(--t4)}
+  }
 </style>
 </head>
 <body>
@@ -267,22 +312,22 @@
     <span id="uiWorld" class="hideTouch" style="color:#8b99ad"></span>
     <span>ROUND <b id="uiRound">1</b></span>
     <span><span class="hideTouch">HOSTILES </span><span class="tOnlyI" style="display:none">☠ </span><b id="uiEnemies">0</b></span>
-    <span><span class="hideTouch">LEVEL </span><b id="uiLevel">1</b></span>
-    <span>MECHS <span id="uiLives">▣▣▣</span></span>
   </div>
   <div id="bossbar" class="glass mono">
     <div id="bossname"></div>
     <div class="bar"><div class="fill" id="bossfill"></div></div>
   </div>
+  <!-- everything about YOUR MECH lives in this one cluster -->
   <div id="barsbox" class="glass">
+    <div id="mechhead" class="mono"><span id="uiLevel2">LV 1</span><span id="uiMechs">▣▣▣</span></div>
     <div class="barlabel mono">HULL INTEGRITY</div>
     <div class="bar"><div class="fill" id="hpfill"></div><span class="num mono" id="hpnum"></span></div>
     <div class="barlabel mono" id="ammolabel">AMMO — PRIMARY</div>
     <div class="bar"><div class="fill" id="ammofill"></div><span class="num mono" id="ammonum"></span></div>
     <div class="barlabel mono" id="shieldlabel">SHIELD [SPACE] — CELLS: ⬢</div>
     <div class="bar"><div class="fill" id="shieldfill"></div></div>
+    <div id="slots"></div>
   </div>
-  <div id="slots"></div>
   <div id="critwarn" class="mono">⚠ HULL CRITICAL ⚠</div>
 </div>
 
@@ -455,11 +500,12 @@
         <span>◄ FULL PLANET</span><span>HERO CLOSE-UP ►</span>
       </div>
     </div>
-    <button class="btn" id="btnResume">RESUME</button>
-    &nbsp;<button class="btn" id="btnMusicP">♪ MUSIC</button>
-    &nbsp;<button class="btn" id="btnFx">FX: FULL</button>
-    &nbsp;<button class="btn" id="btnGpu">GPU FX</button>
-    &nbsp;<button class="btn" id="btnAbort">RETURN TO BASE</button>
+    <button class="btn amber btnbig" id="btnResume">▶ RESUME</button>
+    <div class="setgrid">
+      <button class="btn btnset" id="btnMusicP">♪ MUSIC: ON</button>
+      <button class="btn btnset" id="btnFx">✦ EFFECTS: FULL</button>
+    </div>
+    <button class="btn btndanger" id="btnAbort">ABANDON MISSION</button>
   </div>
 </div>
 
@@ -666,7 +712,7 @@ addEventListener('keydown', e=>{
   if(state==='play' && e.code==='Space' && !e.repeat) activateShield();
   if(state==='play' && (e.code==='ShiftLeft'||e.code==='ShiftRight') && !e.repeat) activateDash();
   if(e.code==='KeyM' && (state==='play'||state==='draft'||state==='pause')) musicToggle();
-  if(e.code==='KeyG' && !e.repeat) pxToggle();
+  if(e.code==='KeyG' && !e.repeat) fxCycle();
   if(e.code==='KeyP' || e.code==='Escape'){
     if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); tutHide(); }
     else if(state==='pause'){ hide('pause'); state='play'; musicDuck(1); }
@@ -725,11 +771,37 @@ function pollPad(){
 }
 addEventListener('gamepadconnected', e=>{ toast('🎮 GAMEPAD CONNECTED — STICKS MOVE & AIM', '#9fe8ff'); });
 
-function show(id){ document.getElementById(id).style.display='flex'; }
+function show(id){ document.getElementById(id).style.display='flex'; uiYieldToModal(); }
 function hide(id){ document.getElementById(id).style.display='none'; }
 
 /* ---- toasts ---- */
-function toast(msg, col){
+/* ---- UI priority ----
+   A modal owns the screen. Transient chrome (toasts, radio chatter, the coach)
+   is held back while one is open and replayed afterwards, instead of stacking
+   on top of it. `force` is for feedback from a control inside a modal, where
+   the player is looking right at it and a queued message would be lost. */
+const OVERLAY_IDS=['menu','homeworld','hangar','missions','draft','over','revive','summary','pause'];
+function modalOpen(){
+  for(const id of OVERLAY_IDS){ const e=document.getElementById(id);
+    if(e && e.style.display==='flex') return true; }
+  return false;
+}
+let toastQ=[], commsQ=null, commsCur=null;
+function flushUiQueue(){
+  if(modalOpen()) return;
+  while(toastQ.length){ const q=toastQ.shift(); toast(q[0], q[1], true); }
+  if(commsQ){ const q=commsQ; commsQ=null; commsShow(q[0],q[1],q[2]); }
+}
+/* a modal opening mid-sentence parks the line rather than truncating it */
+function uiYieldToModal(){
+  if(commsCur){ commsQ=commsCur; commsCur=null; }
+  clearInterval(commsTimer); clearTimeout(commsHide);
+  const el=document.getElementById('comms'); if(el) el.style.display='none';
+  tutHide();
+}
+
+function toast(msg, col, force){
+  if(!force && modalOpen()){ if(toastQ.length<6) toastQ.push([msg,col]); return; }
   const t=document.createElement('div');
   t.className='toast glass mono'; t.textContent=msg;
   t.style.borderLeftColor=col||'#ffae33';
@@ -742,6 +814,8 @@ let commsTimer=null, commsHide=null;
 function commsShow(text, name, col){
   name = name || (CHAR.name+' → HOME BASE');
   col = col || CHAR.col;
+  if(modalOpen()){ commsQ=[text,name,col]; return; }   // wait for the modal to close
+  commsCur=[text,name,col];
   const el=document.getElementById('comms');
   document.getElementById('commsAvatar').style.background=`radial-gradient(circle at 35% 35%, ${col}, #10141c)`;
   document.getElementById('commsAvatar').style.color=col;
@@ -755,7 +829,7 @@ function commsShow(text, name, col){
     tx.innerHTML=text.slice(0,i)+'<span class="cursor">▌</span>';
     if(Math.random()<.3) sfx(rand(900,1300),.02,'square',.008);
     if(i>=text.length){ clearInterval(commsTimer);
-      commsHide=setTimeout(()=>{ el.style.display='none'; }, 3500);
+      commsHide=setTimeout(()=>{ el.style.display='none'; commsCur=null; }, 3500);
     }
   }, 24);
 }
@@ -769,7 +843,21 @@ if(typeof SAVE.totKills!=='number') SAVE.totKills=0;
 if(typeof SAVE.bestRound!=='number') SAVE.bestRound=0;
 if(typeof SAVE.bestCombo!=='number') SAVE.bestCombo=0;
 if(typeof SAVE.fxLow!=='boolean') SAVE.fxLow=false;   // reduced screen shake / flashes
-if(typeof SAVE.gpuFx!=='boolean') SAVE.gpuFx=true;    // GPU (WebGL) effects layer
+/* One effects setting replaces the old pair of independent toggles, which could
+   sit in contradictory states and confused even their author:
+     0 FULL     GPU layer + screen shaders + full shake
+     1 REDUCED  GPU layer, but no screen warping and damped shake
+     2 MINIMAL  2D renderer, damped shake, small particle budget
+   The legacy gpuFx/fxLow flags are derived from it, so the rest of the code and
+   older saves keep working unchanged. */
+if(typeof SAVE.fxMode!=='number'){
+  const oldGpu = (typeof SAVE.gpuFx==='boolean') ? SAVE.gpuFx : true;
+  SAVE.fxMode = !oldGpu ? 2 : (SAVE.fxLow===true ? 1 : 0);
+}
+SAVE.fxMode = Math.max(0, Math.min(2, SAVE.fxMode|0));
+const FX_MODES=['FULL','REDUCED','MINIMAL'];
+SAVE.fxLow = SAVE.fxMode>=1;
+SAVE.gpuFx = SAVE.fxMode<=1;
 if(typeof SAVE.taught!=='boolean') SAVE.taught=false; // first-run coach already completed
 if(typeof SAVE.zoomVal!=='number') SAVE.zoomVal = ({close:.72,med:.4,far:0}[SAVE.zoomMode]) ?? .4;
 function saveGame(){ try{ localStorage.setItem('steelharvest_save', JSON.stringify(SAVE)); }catch(e){} }
@@ -949,7 +1037,7 @@ function tutShow(txt, hit){
 }
 function tutHide(){ const el=document.getElementById('tut'); if(el) el.className='glass mono'; }
 function tutTick(dt){
-  if(!tutOn){ tutHide(); return; }
+  if(!tutOn || modalOpen()){ tutHide(); return; }
   if(tutStep>=TUT.length){                       // all done — never teach again
     tutOn=false; SAVE.taught=true; saveGame(); tutHide(); return;
   }
@@ -3757,7 +3845,7 @@ function buildSlots(){
   WEAPONS.forEach((w,i)=>{
     const d=document.createElement('div');
     d.className='slot glass'; d.id='slot'+i;
-    d.innerHTML=`<div class="icon">${w.icon}</div><div class="nm">${w.name}</div><div class="lv" id="slotlv${i}"></div><div class="mini"><i></i></div>`;
+    d.innerHTML=`<div class="icon">${w.icon}</div><div class="nm">${w.name}</div><div class="lv"><span class="lvf" id="slotlv${i}"></span><span class="lvt" id="slotlvt${i}"></span></div><div class="mini"><i></i></div>`;
     el.appendChild(d);
   });
 }
@@ -3765,8 +3853,8 @@ function updateHUD(){
   document.getElementById('uiWorld').textContent=CHAR.name+' @ '+theme.name;
   document.getElementById('uiRound').textContent=round;
   document.getElementById('uiEnemies').textContent=enemies.length+spawnQueue.length;
-  document.getElementById('uiLevel').textContent=level;
-  document.getElementById('uiLives').textContent='▣'.repeat(Math.max(0,lives))+'□'.repeat(Math.max(0,maxLives-lives));
+  document.getElementById('uiLevel2').textContent='LV '+level;
+  document.getElementById('uiMechs').textContent='▣'.repeat(Math.max(0,lives))+'□'.repeat(Math.max(0,maxLives-lives));
   /* salvage meter across the top of the screen */
   document.getElementById('xpfill').style.width=(clamp(xp/xpNext,0,1)*100)+'%';
   document.getElementById('xptext').textContent='LV '+level+'  ·  SALVAGE '+xp+' / '+xpNext;
@@ -3799,15 +3887,21 @@ function updateHUD(){
     s.classList.toggle('locked', !w.owned);
     const cap=w.cap*capMul(), bar=s.querySelector('.mini i');
     const lab=document.getElementById('slotlv'+i);
-    if(!w.owned){ lab.textContent=''; bar.style.width='0%'; bar.style.background=''; return; }
-    if(w.energyW){
-      lab.textContent='LV '+w.lvl;
+    if(!w.owned){ lab.textContent=''; document.getElementById('slotlvt'+i).textContent='';
+      bar.style.width='0%'; bar.style.background=''; return; }
+    // narrow chips (phones, small laptops) are ~25-39px wide, too narrow for the full
+    // label, so each chip carries both forms and CSS shows whichever fits. The ammo
+    // count dropped from the tight form is already the mini bar underneath.
+    const tight=document.getElementById('slotlvt'+i);
+    if(!w.owned){ tight.textContent=''; }
+    else if(w.energyW){
+      lab.textContent='LV '+w.lvl; tight.textContent=w.lvl;
       bar.style.width=(clamp(player.energy[w.id]/cap,0,1)*100)+'%'; bar.style.background='';
     } else if(w.reloadT>0){
-      lab.textContent='⟳ RELOAD';
+      lab.textContent='⟳ RELOAD'; tight.textContent='⟳';
       bar.style.width=((1-w.reloadT/w.rel)*100)+'%'; bar.style.background='var(--amber)';
     } else {
-      lab.textContent='LV '+w.lvl+' · '+Math.floor(player.energy[w.id]/w.drain);
+      lab.textContent='LV '+w.lvl+' · '+Math.floor(player.energy[w.id]/w.drain); tight.textContent=w.lvl;
       bar.style.width=(clamp(player.energy[w.id]/cap,0,1)*100)+'%'; bar.style.background='';
     }
   });
@@ -4261,7 +4355,8 @@ function musicToggle(){
   MUSIC.on=!MUSIC.on;
   if(!MUSIC.on){ musicStop(); if(MUSIC.master&&AC) MUSIC.master.gain.setTargetAtTime(.0001,AC.currentTime,.05); }
   else if(MUSIC.id && (state==='play'||state==='draft')) musicStart(MUSIC.id);
-  toast('MUSIC '+(MUSIC.on?'ON':'OFF'), '#9fe8ff');
+  toast('MUSIC '+(MUSIC.on?'ON':'OFF'), '#9fe8ff', true);
+  if(typeof musicLabel==='function') musicLabel();
 }
 
 /* ================= GPU FX LAYER (PixiJS) =================
@@ -4371,7 +4466,6 @@ async function pxBoot(){
       document.body.classList.add('gpu');
       document.body.classList.add('gpuworld');
       MAX_PARTS=PX_GPU_CAP;
-      toast('⚡ GPU FX LAYER ONLINE — '+app.renderer.name.toUpperCase(), '#9fe8ff');
     }
   }catch(e){
     PX.failed=true; document.body.classList.remove('gpu');
@@ -4524,11 +4618,7 @@ function pxDraw(){
   app.render();
 }
 
-function pxLabel(){
-  const b=document.getElementById('btnGpu'); if(!b) return;
-  b.textContent = PX.failed ? 'GPU: N/A' : ('GPU FX: '+(PX.on?'ON':'OFF'));
-  b.style.opacity = PX.failed ? .4 : 1;
-}
+function pxLabel(){ if(typeof fxLabel==='function') fxLabel(); }   /* the effects button shows renderer state */
 function pxToggle(){
   if(PX.failed) return;
   PX.on=!PX.on;
@@ -4547,8 +4637,7 @@ function pxToggle(){
     MAX_PARTS=PX_SOFT_CAP;
     if(parts && parts.length>MAX_PARTS) parts.length=MAX_PARTS;
   }
-  SAVE.gpuFx=PX.on; saveGame();
-  toast('GPU FX '+(PX.on?'ON':'OFF'), '#9fe8ff');
+  SAVE.gpuFx=PX.on;
   pxLabel();
 }
 
@@ -4702,6 +4791,7 @@ function loop(now){
   pollPad();
   if(state==='play'){ update(dt); updateHUD(); }
   render();
+  if(toastQ.length||commsQ) flushUiQueue();
   if(pxActive()) warpUpdate(rdt);
   if(pxActive()){
     /* the effects layer is strictly cosmetic: if it ever throws, drop back to the
@@ -4736,14 +4826,24 @@ document.getElementById('btnRvNext').onclick=()=>{ hide('revive'); state='over';
 document.getElementById('btnResume').onclick=e=>{ hide('pause'); e.target.blur(); state='play'; musicDuck(1); };
 document.getElementById('btnMusicP').onclick=e=>{ e.target.blur(); musicToggle(); };
 /* reduced-FX mode — softer shake and flashes, no frame-glitch (accessibility) */
-function fxLabel(){ document.getElementById('btnFx').textContent='FX: '+(SAVE.fxLow?'REDUCED':'FULL'); }
-document.getElementById('btnGpu').onclick=e=>{ e.target.blur(); pxToggle(); };
-document.getElementById('btnFx').onclick=e=>{
-  e.target.blur();
-  SAVE.fxLow=!SAVE.fxLow; saveGame(); fxLabel();
-  toast('SCREEN FX '+(SAVE.fxLow?'REDUCED':'FULL'), '#9fe8ff');
-};
-fxLabel();
+function fxLabel(){
+  const b=document.getElementById('btnFx'); if(!b) return;
+  b.textContent='✦ EFFECTS: '+(PX.failed && SAVE.fxMode<=1 ? 'REDUCED' : FX_MODES[SAVE.fxMode]);
+  b.style.opacity = SAVE.fxMode===0 ? 1 : .78;
+}
+function fxCycle(){
+  SAVE.fxMode=(SAVE.fxMode+1)%3;
+  SAVE.fxLow = SAVE.fxMode>=1;
+  const wantGpu = SAVE.fxMode<=1;
+  if(!PX.failed && wantGpu!==PX.on) pxToggle();   // keeps the renderer classes in sync
+  SAVE.gpuFx = PX.failed ? false : wantGpu;
+  saveGame(); fxLabel();
+  toast('EFFECTS: '+FX_MODES[SAVE.fxMode]+(PX.failed?' — GPU UNAVAILABLE':''), '#9fe8ff', true);
+}
+document.getElementById('btnFx').onclick=e=>{ e.target.blur(); fxCycle(); };
+function musicLabel(){ const b=document.getElementById('btnMusicP');
+  if(b) b.textContent='♪ MUSIC: '+(MUSIC.on?'ON':'OFF'); }
+fxLabel(); musicLabel();
 /* camera zoom slider (mobile pause menu) — stepless, from full planet to hero close-up */
 function refreshZoomBtns(){
   const sl=document.getElementById('zoomSlider'); if(!sl) return;
@@ -4762,7 +4862,15 @@ function refreshZoomBtns(){
   }
 }
 refreshZoomBtns();
-document.getElementById('btnAbort').onclick=()=>{ tutOn=false; tutHide(); hide('pause'); state='menu'; document.getElementById('hud').style.display='none'; buildHome(); show('menu'); musicStart('home'); };
+document.getElementById('btnAbort').onclick=e=>{
+  const btn=e.target;
+  if(btn.dataset.confirm!=='1'){          // one tap arms, a second commits
+    btn.dataset.confirm='1'; btn.textContent='TAP AGAIN TO ABANDON';
+    setTimeout(()=>{ if(btn.dataset.confirm==='1'){ btn.dataset.confirm=''; btn.textContent='ABANDON MISSION'; } }, 3000);
+    return;
+  }
+  btn.dataset.confirm=''; btn.textContent='ABANDON MISSION';
+  tutOn=false; tutHide(); hide('pause'); state='menu'; document.getElementById('hud').style.display='none'; buildHome(); show('menu'); musicStart('home'); };
 document.getElementById('btnSumMissions').onclick=()=>{ hide('summary'); state='hangar'; buildHangar(); show('hangar'); musicStart('home'); };  // reselect your mech after each conquest
 document.getElementById('btnSumBase').onclick=()=>{ hide('summary'); state='menu'; buildHome(); show('menu'); musicStart('home'); };
 document.getElementById('btnHomeWorld').onclick=()=>{ hide('menu'); buildHomeWorld(); show('homeworld'); sfx(380,.15,'sine',.05,180); };
@@ -4799,7 +4907,7 @@ addEventListener('pointerdown', function homeMusicOnce(){
 });
 
 buildHome();
-PX.on = SAVE.gpuFx;
+PX.on = SAVE.fxMode<=1;
 pxLabel();
 if(PX.on) pxBoot();   // async; the 2D renderer covers every frame until it is ready
 requestAnimationFrame(loop);
