@@ -51,7 +51,7 @@
   /* in-play HUD stripped to the bone — full stats live in the pause menu */
   body.touch #topbar{display:none}
   body.touch #slots{display:none}
-  body.touch #bossbar{width:min(280px,72vw);top:10px;padding:4px 10px}
+  body.touch #bossbar{width:min(280px,72vw);top:17px;padding:4px 10px}
   body.touch #bossname{font-size:8px;letter-spacing:2px;margin-bottom:2px}
   body.touch #barsbox{width:130px;padding:5px 6px;left:8px;bottom:8px;border-radius:8px}
   body.touch .barlabel{display:none}
@@ -77,17 +77,18 @@
   body.touch .char p{min-height:0}
   body.touch .mission{width:250px;padding:12px}
   body.touch .mission p{min-height:0;font-size:10.5px}
-  body.touch #shopgrid{grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px}
+  body.touch #draftgrid{gap:7px}
+  body.touch .card{width:min(215px,44vw);padding:10px 10px;border-radius:8px}
+  body.touch .card h3{font-size:12px;margin-bottom:4px}
+  body.touch .card p{font-size:10px;min-height:0;margin-bottom:6px;line-height:1.35}
+  body.touch .card .ctag{font-size:7.5px;margin-bottom:3px}
   body.touch .item{padding:6px 8px;font-size:9.5px;border-radius:6px}
   body.touch .item h3{font-size:10.5px;margin-bottom:2px}
   body.touch .item p{min-height:0;margin-bottom:4px;line-height:1.25}
   body.touch .item .buy{padding:4px 0;font-size:10px}
   body.touch .item .lvl{font-size:8px}
-  body.touch #shophead{margin-bottom:8px}
   body.touch .statline{font-size:12px;margin:5px 0}
-  body.touch #shophead h2{font-size:12px}
-  body.touch #shopcred{font-size:13px}
-  body.touch #shop .panel{max-width:560px;padding:12px 12px}
+  body.touch #draft .panel{max-width:96vw;padding:12px 10px}
 
   .glass{background:linear-gradient(155deg, rgba(58,74,106,.34), rgba(14,20,34,.28));
     backdrop-filter:blur(24px) saturate(180%) brightness(1.12);
@@ -95,9 +96,18 @@
     border:1px solid rgba(255,255,255,.15);
     box-shadow:0 8px 32px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.14)}
 
+  /* salvage XP meter — pinned across the top of the screen */
+  #xpwrap{position:absolute;left:0;right:0;top:0;height:16px;background:rgba(6,10,16,.62);
+    border-bottom:1px solid rgba(255,255,255,.1);overflow:hidden}
+  #xpfill{height:100%;width:0%;background:linear-gradient(90deg,#8a6a1f,#ffd23b 70%,#fff2b0);
+    box-shadow:0 0 12px rgba(255,210,59,.5);transition:width .12s linear}
+  #xptext{position:absolute;left:0;right:0;top:0;line-height:16px;text-align:center;
+    font-size:9px;letter-spacing:2px;color:#fff6d8;text-shadow:0 1px 2px #000}
+  body.touch #xpwrap{height:11px}
+  body.touch #xptext{line-height:11px;font-size:7.5px;letter-spacing:1.5px}
   /* ---------- HUD ---------- */
   #hud{position:fixed;left:0;right:0;top:0;bottom:0;pointer-events:none;display:none}
-  #topbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:24px;align-items:center;
+  #topbar{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;gap:24px;align-items:center;
     border-radius:10px;padding:9px 24px;font-size:13px;letter-spacing:1px}
   #topbar b{color:var(--amber)}
   #topbar #uiLives{color:var(--cyan);letter-spacing:3px}
@@ -206,8 +216,16 @@
   .mission .conq{position:absolute;top:10px;left:14px;font-size:10px;letter-spacing:2px;color:#7dff9a;
     border:1px solid #7dff9a;border-radius:4px;padding:2px 8px;background:rgba(20,60,35,.5)}
 
-  /* shop */
-  #shopgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+  /* upgrade draft cards */
+  #draftgrid{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .card{width:240px;border-radius:12px;padding:16px 14px;cursor:pointer;transition:.14s;
+    border:1px solid var(--glassline);text-align:left}
+  .card:hover{transform:translateY(-4px);border-color:var(--amber);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .card.combo{border-color:rgba(196,155,255,.45)}
+  .card .ctag{font-size:8.5px;letter-spacing:2.5px;margin-bottom:6px;font-family:Consolas,monospace}
+  .card h3{font-size:15px;letter-spacing:1px;margin-bottom:7px;line-height:1.25}
+  .card p{font-size:11.5px;line-height:1.5;color:#9dabc0;min-height:62px;margin-bottom:10px}
+  .card .ctake{font-size:10px;letter-spacing:2px;font-family:Consolas,monospace}
   .item{border-radius:8px;padding:10px 12px;font-size:12px}
   .item.combo{border-color:rgba(196,155,255,.5)}
   .item.combo h3{color:#c49bff}
@@ -215,8 +233,6 @@
   .item p{color:#94a4b8;margin-bottom:8px;min-height:28px;line-height:1.35}
   .item .buy{width:100%;padding:6px 0;font-size:12px}
   .item .lvl{color:var(--cyan);font-size:10px}
-  #shophead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
-  #shopcred{color:var(--amber);font-size:18px;letter-spacing:1px}
   .statline{font-size:15px;margin:8px 0;color:#a5b4c8}
   .statline b{color:var(--amber)}
 </style>
@@ -225,11 +241,12 @@
 <canvas id="cvs"></canvas>
 
 <div id="hud">
+  <div id="xpwrap"><div id="xpfill"></div><span id="xptext" class="mono"></span></div>
   <div id="topbar" class="mono glass">
     <span id="uiWorld" class="hideTouch" style="color:#8b99ad"></span>
     <span>ROUND <b id="uiRound">1</b></span>
     <span><span class="hideTouch">HOSTILES </span><span class="tOnlyI" style="display:none">☠ </span><b id="uiEnemies">0</b></span>
-    <span><span class="hideTouch">SCRAP </span><b id="uiCred">0</b></span>
+    <span><span class="hideTouch">LEVEL </span><b id="uiLevel">1</b></span>
     <span>MECHS <span id="uiLives">▣▣▣</span></span>
   </div>
   <div id="bossbar" class="glass mono">
@@ -278,18 +295,19 @@
       <div class="controls tOnly" style="display:none">
         <b>ONE FINGER</b> — drag anywhere to move; weapons <b style="color:var(--cyan)">auto-fire</b> at the nearest hostile<br>
         <b>⬢</b> — shield burst &nbsp; <b>≫</b> — thruster dash &nbsp; <b>II</b> — pause<br>
-        Chain kills without taking damage to build a <b style="color:var(--amber)">combo — higher combos multiply scrap</b>.<br>
-        Drive over <b style="color:var(--amber)">scrap</b> to salvage it — spend it at the depot between rounds.<br>
+        Chain kills without taking damage to build a <b style="color:var(--amber)">combo — higher combos multiply salvage</b>.<br>
+        Drive over <b style="color:var(--amber)">salvage</b> to fill the meter. Every <b style="color:#ffd700">level</b> and every cleared round lets you <b style="color:#ffd700">pick a refit</b>.<br>
         Kill a world's apex machine to <b style="color:#7dff9a">conquer it — progress is saved</b>.
       </div>
       <div class="controls hideTouch">
         <b>WASD</b> — move &nbsp; <b>ARROWS</b> — fire all weapons &nbsp; <b>SPACE</b> — shield burst<br>
         <b>SHIFT</b> — thruster dash (brief i-frames) &nbsp; <b>P</b> — pause &nbsp; <b>M</b> — music<br>
         <b>GAMEPAD</b> — left stick move · right stick aim/fire · <b>A</b> shield · <b>B</b> dash · <b>START</b> pause<br>
-        Chain kills without taking damage to build a <b style="color:var(--amber)">combo — higher combos multiply scrap</b>.<br><br>
-        Hostiles drop <b style="color:var(--amber)">nuts &amp; bolts</b> — drive over the scrap to salvage it.<br>
-        Buy new <b style="color:var(--cyan)">weapon attachments</b> at the depot; they all fire together.<br>
-        Level attachments up to unlock <b style="color:#c49bff">combination tech</b>.<br>
+        Chain kills without taking damage to build a <b style="color:var(--amber)">combo — higher combos multiply salvage</b>.<br><br>
+        Hostiles drop <b style="color:var(--amber)">salvage cores</b> — drive over them to fill the meter along the top.<br>
+        Every <b style="color:#ffd700">level</b> and every cleared round offers <b style="color:#ffd700">three refits — take one</b>.<br>
+        Refits add <b style="color:var(--cyan)">weapon attachments</b> (they all fire together), level them up,<br>
+        and pairing two LV2 weapons unlocks <b style="color:#c49bff">fusion tech</b>.<br>
         Kill a world's apex machine to <b style="color:#7dff9a">conquer it — progress is saved</b>.
       </div>
       <div class="sub mono" style="margin-top:12px;letter-spacing:3px;color:#8b99ad;font-size:10px">WORLD ROSTER</div>
@@ -339,15 +357,12 @@
   </div>
 </div>
 
-<!-- SHOP -->
-<div class="overlay" id="shop">
-  <div class="panel glass">
-    <div id="shophead">
-      <h2>FIELD DEPOT — ROUND <span id="shopRound"></span> CLEARED</h2>
-      <div class="mono" id="shopcred"></div>
-    </div>
-    <div id="shopgrid"></div>
-    <div class="center"><button class="btn amber" id="btnNext">LAUNCH NEXT ROUND ⏵</button></div>
+<!-- UPGRADE DRAFT -->
+<div class="overlay" id="draft">
+  <div class="panel glass" style="max-width:860px">
+    <h2 style="text-align:center" id="draftHead"></h2>
+    <div class="sub" id="draftSub"></div>
+    <div id="draftgrid"></div>
   </div>
 </div>
 
@@ -357,8 +372,8 @@
     <h1 style="color:var(--red)">MISSION FAILED</h1>
     <div class="sub" id="ovWorld">ALL MECHS DESTROYED</div>
     <div class="statline">Rounds survived: <b id="ovRound"></b></div>
-    <div class="statline">Hostiles scrapped: <b id="ovKills"></b></div>
-    <div class="statline">Scrap earned: <b id="ovCred"></b></div>
+    <div class="statline">Hostiles destroyed: <b id="ovKills"></b></div>
+    <div class="statline">Reached: <b id="ovCred"></b></div>
     <div class="statline">Best combo: <b id="ovCombo">×0</b></div>
     <br>
     <button class="btn" id="btnRevive" style="border-color:#ffd23b;color:#ffd23b">↻ SPIN TO REVIVE</button>
@@ -394,10 +409,10 @@
     <div class="statline">Mech: <b id="sumPilot"></b></div>
     <div class="statline">Apex machine destroyed: <b id="sumBoss"></b></div>
     <div class="statline">Rounds cleared: <b id="sumRounds"></b></div>
-    <div class="statline">Hostiles scrapped: <b id="sumKills"></b></div>
+    <div class="statline">Hostiles destroyed: <b id="sumKills"></b></div>
     <div class="statline">Best combo: <b id="sumCombo">×0</b></div>
-    <div class="statline">Total scrap: <b id="sumCred"></b></div>
-    <div class="statline">Deposited to bank: <b id="sumDeposit"></b></div>
+    <div class="statline">Reached: <b id="sumCred"></b></div>
+    <div class="statline">Career stars: <b id="sumStars"></b></div>
     <br>
     <button class="btn amber" id="btnSumMissions">NEXT DEPLOYMENT</button>
     &nbsp;<button class="btn" id="btnSumBase">RETURN TO BASE</button>
@@ -616,7 +631,7 @@ addEventListener('keydown', e=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
   if(state==='play' && e.code==='Space' && !e.repeat) activateShield();
   if(state==='play' && (e.code==='ShiftLeft'||e.code==='ShiftRight') && !e.repeat) activateDash();
-  if(e.code==='KeyM' && (state==='play'||state==='shop'||state==='pause')) musicToggle();
+  if(e.code==='KeyM' && (state==='play'||state==='draft'||state==='pause')) musicToggle();
   if(e.code==='KeyP' || e.code==='Escape'){
     if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); }
     else if(state==='pause'){ hide('pause'); state='play'; musicDuck(1); }
@@ -715,8 +730,6 @@ let SAVE={conquered:{}};
 try{ const s=localStorage.getItem('steelharvest_save'); if(s) SAVE=JSON.parse(s); }catch(e){}
 if(!SAVE.conquered) SAVE.conquered={};
 if(!SAVE.stars) SAVE.stars={};
-if(typeof SAVE.wallet!=='number') SAVE.wallet=0;
-if(typeof SAVE.homeTier!=='number') SAVE.homeTier=0;
 if(typeof SAVE.totKills!=='number') SAVE.totKills=0;
 if(typeof SAVE.bestRound!=='number') SAVE.bestRound=0;
 if(typeof SAVE.bestCombo!=='number') SAVE.bestCombo=0;
@@ -724,18 +737,23 @@ if(typeof SAVE.fxLow!=='boolean') SAVE.fxLow=false;   // reduced screen shake / 
 if(typeof SAVE.zoomVal!=='number') SAVE.zoomVal = ({close:.72,med:.4,far:0}[SAVE.zoomMode]) ?? .4;
 function saveGame(){ try{ localStorage.setItem('steelharvest_save', JSON.stringify(SAVE)); }catch(e){} }
 
-/* ---- mothership tiers ---- */
+/* ---- mothership tiers ----
+   Refit is earned, never bought: each tier unlocks at a star threshold and can
+   never be lost or spent away. 4 worlds x 3 stars = 12 stars available. */
 const TIERS=[
-  { name:'DRIFTING HULK',   cost:0,     perk:'A powerless husk adrift in the dark. But it’s yours.' },
-  { name:'REACTOR ONLINE',  cost:800,   perk:'Main reactor relit — +25 max hull on every deployment' },
-  { name:'CREW DECKS',      cost:2500,  perk:'Barracks pressurized — +1 starting shield cell & +200 starting scrap' },
-  { name:'FOUNDRY BAY',     cost:6000,  perk:'Onboard forge running — +10% weapon damage' },
-  { name:'FLAGSHIP',        cost:15000, perk:'Full battle-carrier — +1 reserve mech (4 lives)' },
+  { name:'DRIFTING HULK',   stars:0,  perk:'A powerless husk adrift in the dark. But it’s yours.' },
+  { name:'REACTOR ONLINE',  stars:2,  perk:'Main reactor relit — +25 max hull on every deployment' },
+  { name:'CREW DECKS',      stars:4,  perk:'Barracks pressurized — +1 starting shield cell & deploy at LEVEL 2' },
+  { name:'FOUNDRY BAY',     stars:7,  perk:'Onboard forge running — +10% weapon damage' },
+  { name:'FLAGSHIP',        stars:10, perk:'Full battle-carrier — +1 reserve mech (4 lives)' },
 ];
+const starTotal = ()=>Object.values(SAVE.stars).reduce((s,v)=>s+(v||0),0);
+/* highest tier whose star requirement is met — derived, so there is nothing to spend */
+function homeTier(){ let t=0; for(let i=0;i<TIERS.length;i++) if(starTotal()>=TIERS[i].stars) t=i; return t; }
 
 /* ---- difficulty ---- */
-let missionDiff=1, lastFuelCost=0;
-const diffHpMul  = ()=>1+.35*(missionDiff-1);
+let missionDiff=1;
+const diffHpMul  = ()=>1+.24*(missionDiff-1);
 const diffDmgMul = ()=>1+.18*(missionDiff-1);
 const diffLootMul= ()=>1+.35*(missionDiff-1);
 
@@ -768,16 +786,18 @@ const allBaseConquered = ()=>BASE_WORLDS.every(t=>SAVE.conquered[t.id]);
   const ids=THEMES.map(t=>t.id);
   for(const k of Object.keys(SAVE.conquered)) if(!ids.includes(k)) delete SAVE.conquered[k];
   for(const k of Object.keys(SAVE.stars))     if(!ids.includes(k)) delete SAVE.stars[k];
+  /* the old scrap economy is gone — drop its keys so saves stop carrying a dead wallet */
+  delete SAVE.wallet; delete SAVE.homeTier;
 }
 
 const BOSSES = {
-  verdant:  { name:'THE GARDENER',  hp:4000, spd:42, r:54, dmg:32, pts:800, col:'#46e08c',
+  verdant:  { name:'THE GARDENER',  hp:3300, spd:42, r:54, dmg:32, pts:800, col:'#46e08c',
               blurb:'Apex machine: THE GARDENER — seed-storm cultivator' },
-  cinder:   { name:'FORGEMASTER',   hp:4600, spd:36, r:56, dmg:37, pts:850, col:'#ff6b35',
+  cinder:   { name:'FORGEMASTER',   hp:3800, spd:36, r:56, dmg:37, pts:850, col:'#ff6b35',
               blurb:'Apex machine: FORGEMASTER — magma mortar artillery' },
-  glacia:   { name:'PERMAFROST',    hp:4200, spd:40, r:52, dmg:30, pts:820, col:'#7ad7ff',
+  glacia:   { name:'PERMAFROST',    hp:3500, spd:40, r:52, dmg:30, pts:820, col:'#7ad7ff',
               blurb:'Apex machine: PERMAFROST — cryo-lance sentinel' },
-  prism:    { name:'THE FRACTAL',   hp:5800, spd:50, r:50, dmg:39, pts:1200, col:'#ff7ae8',
+  prism:    { name:'THE FRACTAL',   hp:4700, spd:50, r:50, dmg:39, pts:1200, col:'#ff7ae8',
               blurb:'Apex machine: THE FRACTAL — kaleidoscope of mirrors' },
 };
 /* mid-mission radio chatter — pilot and apex machine trade words at rounds 3/5/7/9 */
@@ -851,10 +871,17 @@ for(let i=0;i<160;i++) STARS.push({x:Math.random(),y:Math.random(),r:rand(.6,2),
 /* ================= STATE ================= */
 let state = 'menu';
 let player, enemies, bullets, ebullets, missiles, parts, floats, arcs, rings, beams, spawnQueue;
-let pickups, hazards, mortars, napalmQueue, scrap;
-let round, credits, kills, totalCred, spawnTimer, shake, lives, flashT, lowHullWarned, tGlobal = 0;
+let pickups, hazards, mortars, napalmQueue, cores;
+let round, kills, spawnTimer, shake, lives, flashT, lowHullWarned, tGlobal = 0;
+/* ---- progression: salvage cores fill an XP meter; every level grants an upgrade pick.
+   There is no currency, so there is nothing to run out of and nothing to be priced out of. */
+let xp=0, level=1, totalXp=0, picksPending=0, xpPop=0;
+/* steep on purpose: a mid-round level-up pauses the fight for a card, so these
+   should stay occasional. The reliable cadence is the guaranteed round-clear pick. */
+const xpForLevel = lv => Math.round(400 + 300*(lv-1) + 150*(lv-1)*(lv-1));
+let xpNext = xpForLevel(1);
 let bossWarnT = 0;   // "ANOMALY INCOMING" banner timer
-/* kill-combo: chain kills to multiply scrap; taking hull damage breaks the streak */
+/* kill-combo: chain kills to multiply salvage; taking hull damage breaks the streak */
 let combo=0, comboT=0, comboPop=0, comboBestRun=0;
 const COMBO_WINDOW=4;
 const comboMul=()=>combo>=30?1.75:combo>=15?1.5:combo>=8?1.3:combo>=4?1.15:1;
@@ -864,7 +891,7 @@ let dmgDirs=[];                     // incoming-damage direction pings (screen-e
 const DASH_T=.16, DASH_CD=1.6, DASH_SPD=1350;   // thruster dash
 let roundMod=null;                               // themed-round modifier: 'horde' | 'elite' | null
 let extractPhase=null, extractT=0, liftT=0, missionFirstClear=false;
-let shopPending=false, shopTimer=0, shopBonus=0;   // 1s beat between round-clear and the depot screen
+let draftPending=false, draftTimer=0;   // 1s beat between round-clear and the upgrade draft
 let reviveUsed=false;                               // one revive-roulette spin per run
 let worldHaz=[];
 /* every world's terrain hazard is a FIRE FIELD — stepping in one ignites you (burn DoT) */
@@ -879,18 +906,19 @@ const BURN_DUR=2.5, BURN_TICK=.5;   // ignited: keeps burning after you leave th
 /* ---- weapons (attachments — all owned fire together) ---- */
 const WEAPONS = [
   { id:'vulcan',  name:'VULCAN',   icon:'⣿', desc:'Rapid-fire autocannon. LV: fans out an extra round per level in a widening cone.',
-    owned:false, lvl:1, cost:700, upBase:420, rof:.095, dmg:6,  spd:760, drain:1.6, cap:100, regen:14, cdT:0, rel:1.4, reloadT:0 },
+    owned:false, lvl:1, rof:.095, dmg:6,  spd:760, drain:1.6, cap:100, regen:14, cdT:0, rel:1.4, reloadT:0 },
   { id:'railgun', name:'RAILGUN',  icon:'━', desc:'Slow, devastating piercing slug.',
-    owned:false, lvl:1, cost:750, upBase:450, rof:.85,  dmg:62, spd:1500, drain:16, cap:100, regen:11, cdT:0, rel:1.7, reloadT:0 },
+    owned:false, lvl:1, rof:.85,  dmg:62, spd:1500, drain:16, cap:100, regen:11, cdT:0, rel:1.7, reloadT:0 },
   { id:'swarm',   name:'SWARM',    icon:'⌁', desc:'Homing missiles w/ splash. LV: +1 missile every other level, faster & tighter tracking.',
-    owned:false, lvl:1, cost:1050, upBase:480, rof:.3,   dmg:24, spd:190, drain:7,  cap:100, regen:10, cdT:0, rel:1.9, reloadT:0 },
+    owned:false, lvl:1, rof:.3,   dmg:24, spd:190, drain:7,  cap:100, regen:10, cdT:0, rel:1.9, reloadT:0 },
   { id:'aegis',   name:'AEGIS',    icon:'◍', desc:'Forcefield that repels & damages. Grows with level.',
-    owned:false, lvl:1, cost:900, upBase:450, rof:0,    dmg:26, spd:0,   drain:22, cap:100, regen:13, cdT:0, energyW:true },
+    owned:false, lvl:1, rof:0,    dmg:26, spd:0,   drain:22, cap:100, regen:13, cdT:0, energyW:true },
   { id:'tesla',   name:'TESLA',    icon:'ϟ', desc:'Arc lightning chaining between hostiles.',
-    owned:false, lvl:1, cost:1400, upBase:520, rof:.34,  dmg:19, spd:0,   drain:7,  cap:100, regen:12, cdT:0, energyW:true },
+    owned:false, lvl:1, rof:.34,  dmg:19, spd:0,   drain:7,  cap:100, regen:12, cdT:0, energyW:true },
 ];
+const WLVL_MAX=8;
 const wByid = id => WEAPONS.find(w=>w.id===id);
-const weaponDmg = w => w.dmg*(1+.22*(w.lvl-1))*(SAVE.homeTier>=3?1.1:1);
+const weaponDmg = w => w.dmg*(1+.22*(w.lvl-1))*(homeTier()>=3?1.1:1);
 const weaponRof = w => w.rof/(1+.1*(w.lvl-1));
 const aegisR = ()=>{ const w=wByid('aegis'); return 122 + 30*(w.lvl-1); };
 const totalLvls = ()=>WEAPONS.reduce((s,w)=>s+(w.owned?w.lvl:0),0);
@@ -898,32 +926,32 @@ function tierCol(){ const t=totalLvls(); return t>=12?'#ffd700': t>=8?'#c49bff':
 
 /* ---- fusion tech (one per weapon pair, unlocked when both hit LV2, upgradeable) ---- */
 const COMBOS = [
-  { id:'seeker',     req:['vulcan','swarm'],   name:'SEEKER ROUNDS',   cost:1000, upBase:450,
+  { id:'seeker',     req:['vulcan','swarm'],   name:'SEEKER ROUNDS',   
     desc:'Vulcan slugs curve toward hostiles. LV: sharper tracking.' },
-  { id:'sabot',      req:['vulcan','railgun'], name:'SABOT STORM',     cost:1100, upBase:480,
+  { id:'sabot',      req:['vulcan','railgun'], name:'SABOT STORM',     
     desc:'Every few vulcan rounds, a piercing mini-slug. LV: more often.' },
-  { id:'volt',       req:['vulcan','tesla'],   name:'VOLT ROUNDS',     cost:1050, upBase:460,
+  { id:'volt',       req:['vulcan','tesla'],   name:'VOLT ROUNDS',     
     desc:'Vulcan hits can arc lightning to a neighbor. LV: higher chance.' },
-  { id:'siphon',     req:['vulcan','aegis'],   name:'KINETIC SIPHON',  cost:1000, upBase:450,
+  { id:'siphon',     req:['vulcan','aegis'],   name:'KINETIC SIPHON',  
     desc:'Bullets your field eats are fired back at the enemy. LV: harder returns.' },
-  { id:'detonator',  req:['railgun','swarm'],  name:'DETONATOR SLUGS', cost:1250, upBase:520,
+  { id:'detonator',  req:['railgun','swarm'],  name:'DETONATOR SLUGS', 
     desc:'Rail impacts explode for splash damage. LV: releases micro-missiles on impact.' },
-  { id:'prismlance', req:['railgun','tesla'],  name:'PRISM LANCE',     cost:1350, upBase:560,
+  { id:'prismlance', req:['railgun','tesla'],  name:'PRISM LANCE',     
     desc:'The railgun becomes an instant energy beam. LV: wider beam.' },
-  { id:'bastion',    req:['railgun','aegis'],  name:'BASTION PULSE',   cost:1200, upBase:500,
+  { id:'bastion',    req:['railgun','aegis'],  name:'BASTION PULSE',   
     desc:'Each rail shot detonates a repulsor wave around you. LV: bigger wave.' },
-  { id:'orbital',    req:['swarm','aegis'],    name:'ORBITAL GUARD',   cost:1200, upBase:500,
+  { id:'orbital',    req:['swarm','aegis'],    name:'ORBITAL GUARD',   
     desc:'Active field auto-launches micro-missiles. LV: faster launches.' },
-  { id:'staticwar',  req:['swarm','tesla'],    name:'STATIC WARHEADS', cost:1200, upBase:520,
+  { id:'staticwar',  req:['swarm','tesla'],    name:'STATIC WARHEADS', 
     desc:'Missile blasts chain lightning. LV: longer chains.' },
-  { id:'static',     req:['aegis','tesla'],    name:'STATIC FIELD',    cost:1150, upBase:500,
+  { id:'static',     req:['aegis','tesla'],    name:'STATIC FIELD',    
     desc:'The field lashes enemies inside with arcs. LV: faster, harder.' },
 ];
 COMBOS.forEach(c=>{ c.owned=false; c.lvl=0; c.announced=false; });
 const COMBO = id => COMBOS.find(c=>c.id===id);
 const comboLvl = id => { const c=COMBO(id); return c&&c.owned ? c.lvl : 0; };
 const hasCombo = id => comboLvl(id)>0;
-const comboUpCost = c => Math.round(c.upBase*Math.pow(1.7,c.lvl-1));
+const CLVL_MAX=5;
 const comboReady = c => c.req.every(id=>{ const w=wByid(id); return w.owned && w.lvl>=2; });
 function checkComboAnnounce(){
   for(const c of COMBOS){
@@ -951,14 +979,14 @@ function detonate(x,y){
 
 /* ---- global upgrades ---- */
 const UPGRADES = [
-  { id:'ammo',  name:'REACTOR CELLS',  desc:'+25% ammo capacity & +20% regen', base:200, lvl:0, mult:1.6 },
-  { id:'hull',  name:'PLATE ARMOR',    desc:'+30 max hull (and repairs +30)', base:220, lvl:0, mult:1.6 },
-  { id:'spd',   name:'ACTUATORS',      desc:'+9% movement speed', base:190, lvl:0, mult:1.7 },
-  { id:'crit',  name:'TARGETING SUITE',desc:'+4% critical hit chance', base:250, lvl:0, mult:1.65 },
-  { id:'cell',  name:'SHIELD CELL',    desc:'+1 shield charge (max 3)', base:260, lvl:0, mult:1.45 },
-  { id:'repair',name:'FIELD REPAIR',   desc:'Restore hull to full', base:140, lvl:0, mult:1.3 },
+  { id:'ammo',  name:'REACTOR CELLS',  desc:'+25% ammo capacity & +20% regen', lvl:0 },
+  { id:'hull',  name:'PLATE ARMOR',    desc:'+30 max hull (and repairs +30)', lvl:0 },
+  { id:'spd',   name:'ACTUATORS',      desc:'+9% movement speed', lvl:0 },
+  { id:'crit',  name:'TARGETING SUITE',desc:'+4% critical hit chance', lvl:0 },
+  { id:'cell',  name:'SHIELD CELL',    desc:'+1 shield charge (max 3)', lvl:0 },
+  { id:'repair',name:'FIELD REPAIR',   desc:'Restore hull to full', lvl:0 },
 ];
-const upgCost = u => Math.round(u.base * Math.pow(u.mult, u.lvl));
+const ULVL_MAX={ammo:6, hull:8, spd:5, crit:6, cell:3, repair:99};
 const UPG = id => UPGRADES.find(u=>u.id===id);
 const capMul  = ()=>1 + .25*UPG('ammo').lvl;
 const regMul  = ()=>(1 + .20*UPG('ammo').lvl)*(1+(CHAR.mods.regen||0));
@@ -983,7 +1011,7 @@ const ETYPES = {
 let maxLives=3;
 function newGame(){
   applyPlanetSize();               // set this world's planet radius
-  const tier=SAVE.homeTier||0;
+  const tier=homeTier();
   const hull=100+(CHAR.mods.hull||0)+(tier>=1?25:0);
   player = {
     x:0, y:0, r:22, hp:hull, maxhp:hull, baseSpd:250,
@@ -1001,12 +1029,15 @@ function newGame(){
   player.sabotN=0; player.orbT=0;
   reviveUsed=false;
   enemies=[]; bullets=[]; ebullets=[]; missiles=[]; parts=[]; floats=[]; arcs=[]; rings=[]; beams=[];
-  pickups=[]; hazards=[]; mortars=[]; napalmQueue=[]; scrap=[];
+  pickups=[]; hazards=[]; mortars=[]; napalmQueue=[]; cores=[];
   maxLives=3+(tier>=4?1:0);
-  round=0; credits=(tier>=2?200:0); kills=0; totalCred=credits; shake=0; lives=maxLives; flashT=0;
+  round=0; kills=0; shake=0; lives=maxLives; flashT=0;
+  /* progression resets per mission; CREW DECKS refit deploys you a level ahead */
+  xp=0; level=1; totalXp=0; xpNext=xpForLevel(1); xpPop=0;
+  picksPending = tier>=2 ? 1 : 0;
   dropPhase=null; dropT=0; dropBomb=false;
   extractPhase=null; extractT=0; liftT=0; missionFirstClear=false;
-  shopPending=false; shopTimer=0; shopBonus=0; bossWarnT=0;
+  draftPending=false; draftTimer=0; bossWarnT=0;
   combo=0; comboT=0; comboPop=0; comboBestRun=0; hitStopT=0; slowmoT=0; dmgDirs=[];
   buildSlots();
   startRound();
@@ -1015,7 +1046,7 @@ function newGame(){
 function startRound(){
   round++;
   enemies=[]; bullets=[]; ebullets=[]; missiles=[]; arcs=[]; rings=[]; beams=[];
-  pickups=[]; hazards=[]; mortars=[]; napalmQueue=[]; scrap=[];
+  pickups=[]; hazards=[]; mortars=[]; napalmQueue=[]; cores=[];
   /* themed rounds — mid-mission variety rolls (never on the opener or the boss round) */
   roundMod=null;
   if(round>=3 && round<=9 && Math.random()<.28) roundMod = Math.random()<.5 ? 'horde' : 'elite';
@@ -1025,7 +1056,7 @@ function startRound(){
   spawnTimer = .5;
   lowHullWarned=false;
   combo=0; comboT=0; dmgDirs=[];
-  shopPending=false; shopTimer=0;
+  draftPending=false; draftTimer=0;
   WEAPONS.forEach(w=>{ player.energy[w.id] = w.cap*capMul(); w.reloadT=0; });
   const nCrates = 2 + (round%3===0?1:0);
   for(let i=0;i<nCrates;i++){
@@ -1113,8 +1144,8 @@ function spawnEnemyAt(type,x,y){
     return;
   }
   const bp=ETYPES[type];
-  const hpScale = (1 + .26*(round-1))*tMul, dmgScale = (1 + .09*(round-1))*tDmg;
-  /* elite variants — gold champions: tougher, meaner, 3x scrap, likely powerup drop */
+  const hpScale = (1 + .22*(round-1))*tMul, dmgScale = (1 + .085*(round-1))*tDmg;
+  /* elite variants — gold champions: tougher, meaner, 3x salvage, likely powerup drop */
   const canElite = round>=3 && type!=='spider' && type!=='emp' && type!=='bunker';
   let eliteCh = Math.min(.16, .015*round + .03*(missionDiff-1));
   if(roundMod==='elite') eliteCh = Math.min(.5, eliteCh*4);   // elite patrol round
@@ -1432,7 +1463,7 @@ function teslaFire(D, a, w){
   arcs.push({pts, ttl:.14, w:2+w.lvl*.5});
 }
 
-/* ================= DAMAGE / SCRAP ================= */
+/* ================= DAMAGE / SALVAGE ================= */
 function damageEnemy(e, amt, showNum, crit){
   e.hp -= amt; e.flash=Math.max(e.flash||0,.13);
   if(crit){ shake=Math.min(shake+3,16); }
@@ -1447,7 +1478,7 @@ function damageEnemy(e, amt, showNum, crit){
     if(combo>comboBestRun) comboBestRun=combo;
     if(crit || e.type==='brute' || e.type==='bunker') hitStopT=Math.max(hitStopT,.05);   // heavy-kill hit-stop
     const val=Math.round(e.pts*(1+.05*(round-1))*diffLootMul()*comboMul());
-    dropScrap(e.x, e.y, val);
+    dropCores(e.x, e.y, val);
     deathSfx(e.type);
     boom(e.x, e.y, e.col, e.type==='boss'?50:e.type==='brute'?24:13);
     rings.push({x:e.x,y:e.y,r:8,mr:e.type==='boss'?170:e.r*3,ttl:.4,mt:.4,col:e.col});
@@ -1467,7 +1498,8 @@ function damageEnemy(e, amt, showNum, crit){
   }
 }
 
-function dropScrap(x,y,val){
+/* salvage cores — the physical pickups that feed the XP meter */
+function dropCores(x,y,val){
   let v=val, n=0;
   while(v>0 && n<7){
     let pv, pt;
@@ -1476,15 +1508,30 @@ function dropScrap(x,y,val){
     v-=pv; n++;
     if(n===7 && v>0){ pv+=v; v=0; }
     const a=rand(0,Math.PI*2), s=rand(50,170);
-    scrap.push({type:pt, val:pv, x:wrap(x+rand(-8,8)), y:wrap(y+rand(-8,8)),
+    cores.push({type:pt, val:pv, x:wrap(x+rand(-8,8)), y:wrap(y+rand(-8,8)),
       vx:Math.cos(a)*s, vy:Math.sin(a)*s, ttl:18, rot:rand(0,7), t:rand(0,7)});
+  }
+}
+
+/* gain salvage XP — crossing a level threshold banks an upgrade pick.
+   Levels and picks are permanent: nothing here can ever be spent or taken away. */
+function gainXp(amt){
+  amt=Math.max(0,Math.round(amt));
+  if(!amt) return;
+  xp+=amt; totalXp+=amt; xpPop=.3;
+  while(xp>=xpNext){
+    xp-=xpNext; level++; picksPending++;
+    xpNext=xpForLevel(level);
+    floats.push({x:player.x, y:player.y-70, txt:'⬆ LEVEL '+level, ttl:1.4, col:'#ffd700', big:true});
+    rings.push({x:player.x,y:player.y,r:10,mr:150,ttl:.5,mt:.5,col:'#ffd700'});
+    sfx(660,.22,'sine',.06,330); sfx(990,.3,'sine',.045,220);
   }
 }
 
 function onBossKilled(e){
   slowmoT=1.1;   // savor the kill
   dropPowerup(e.x,e.y);
-  dropScrap(e.x+30,e.y+20, 200);
+  dropCores(e.x+30,e.y+20, 200);
   /* on a 2-boss (3-star) fight, don't extract until every apex machine is down */
   if(enemies.some(o=>o!==e && !o.dead && o.type==='boss')){
     toast('⚠ ONE ANOMALY DOWN — ANOTHER IS STILL ACTIVE', '#ffae33');
@@ -1514,7 +1561,7 @@ function onBossKilled(e){
     toast(BOSSES[e.bossId].name+' DESTROYED AGAIN', '#ff8ab0');
   }
   setTimeout(()=>{
-    if(state==='play'||state==='shop'){
+    if(state==='play'||state==='draft'){
       const line=(first?CONQUER_LINES[theme.id]:'HQ, %C again. The apex machine of '+theme.name+' is down. Repeat performance.');
       commsShow(line.replace('%C',CHAR.name));
     }
@@ -1584,18 +1631,19 @@ function destroyMech(){
     parts.push({x:P.x, y:P.y-8, vx:Math.cos(a)*s, vy:Math.sin(a)*s, ttl:rand(.25,.6),
       col:Math.random()<.5?'#ffd23b':'#ff7a35', r:rand(2,5)});
   }
-  /* ---- Sonic-style scrap scatter: lose a little scrap; it bursts out to be re-collected ---- */
-  if(credits>0){
-    const loss=Math.min(credits, Math.max(20, Math.round(credits*.25)));
-    credits-=loss;
-    floats.push({x:P.x, y:P.y-56, txt:'-'+loss+' SCRAP', ttl:1.2, col:'#ff8c3b', big:true});
+  /* ---- Sonic-style salvage scatter: the hit spills un-banked XP progress as cores
+         you can chase back down. Levels and picks already earned are never touched. ---- */
+  if(xp>0){
+    const loss=Math.min(xp, Math.max(20, Math.round(xp*.35)));
+    xp-=loss;
+    floats.push({x:P.x, y:P.y-56, txt:'-'+loss+' SALVAGE', ttl:1.2, col:'#ff8c3b', big:true});
     let v=loss, n=0;
-    while(v>0 && n<12 && scrap.length<220){
+    while(v>0 && n<12 && cores.length<220){
       let pv, pt;
       if(v>=30 && Math.random()<.5){ pt='bolt'; pv=30; } else { pt='nut'; pv=Math.min(12,v); }
       v-=pv; n++; if(n===12 && v>0){ pv+=v; v=0; }
       const a=rand(0,Math.PI*2), s=rand(190,360);
-      scrap.push({type:pt, val:pv, x:wrap(P.x), y:wrap(P.y-6),
+      cores.push({type:pt, val:pv, x:wrap(P.x), y:wrap(P.y-6),
         vx:Math.cos(a)*s, vy:Math.sin(a)*s, ttl:18, rot:rand(0,7), t:rand(0,7), scatter:.7});
     }
     sfx(880,.12,'square',.05,-220); sfx(1180,.1,'triangle',.04,-320);
@@ -1610,19 +1658,22 @@ function destroyMech(){
 
 function openSummary(){
   state='summary'; extractPhase=null;
-  /* bank any scrap left on the field */
-  let salvage=0;
-  for(const s of scrap){ salvage+=s.val; }
-  scrap=[];
-  if(salvage>0){ credits+=salvage; totalCred+=salvage; }
-  /* bank deposit + star record + service record */
-  SAVE.wallet+=credits;
+  /* sweep up any salvage still on the field */
+  let sweep=0;
+  for(const s of cores){ sweep+=s.val; }
+  cores=[];
+  if(sweep>0) gainXp(sweep);
+  const starsBefore=starTotal(), tierBefore=homeTier();
   SAVE.stars[theme.id]=Math.max(SAVE.stars[theme.id]||0, missionDiff);
   SAVE.totKills+=kills;
   SAVE.bestRound=Math.max(SAVE.bestRound,round);
   SAVE.bestCombo=Math.max(SAVE.bestCombo,comboBestRun);
+  SAVE.bestLevel=Math.max(SAVE.bestLevel||0,level);
   saveGame();
-  document.getElementById('sumDeposit').textContent=credits+' → bank '+SAVE.wallet;
+  const starsGained=starTotal()-starsBefore;
+  document.getElementById('sumStars').textContent =
+    (starsGained>0?'+'+starsGained+' → ':'')+starTotal()+' / 12'+
+    (homeTier()>tierBefore?'   ⬢ MOTHERSHIP REFIT: '+TIERS[homeTier()].name:'');
   document.getElementById('hud').style.display='none';
   document.getElementById('comms').style.display='none';
   musicStop();
@@ -1636,7 +1687,7 @@ function openSummary(){
   document.getElementById('sumRounds').textContent=round;
   document.getElementById('sumKills').textContent=kills;
   document.getElementById('sumCombo').textContent='×'+comboBestRun;
-  document.getElementById('sumCred').textContent=totalCred;
+  document.getElementById('sumCred').textContent='LEVEL '+level+'  ('+totalXp+' salvage)';
   show('summary');
   sfx(660,.3,'sine',.06,330); sfx(990,.5,'sine',.04,250);
 }
@@ -1646,11 +1697,12 @@ function gameOver(){
   document.getElementById('ovWorld').textContent = theme.name+' — ALL MECHS DESTROYED';
   document.getElementById('ovRound').textContent=round;
   document.getElementById('ovKills').textContent=kills;
-  document.getElementById('ovCred').textContent=totalCred;
+  document.getElementById('ovCred').textContent='LEVEL '+level+'  ('+totalXp+' salvage)';
   document.getElementById('ovCombo').textContent='×'+comboBestRun;
   SAVE.totKills+=kills;
   SAVE.bestRound=Math.max(SAVE.bestRound,round);
   SAVE.bestCombo=Math.max(SAVE.bestCombo,comboBestRun);
+  SAVE.bestLevel=Math.max(SAVE.bestLevel||0,level);
   saveGame();
   document.getElementById('hud').style.display='none';
   document.getElementById('btnRevive').style.display = reviveUsed ? 'none' : '';   // one spin per run
@@ -1752,8 +1804,8 @@ function collectPickup(p){
   p.dead=true;
   if(p.type==='crate'){
     const c=Math.round((50+round*18+rand(0,40))*diffLootMul());
-    credits+=c; totalCred+=c;
-    floats.push({x:p.x, y:p.y-30, txt:'SUPPLY CRATE +'+c+'', ttl:1.4, col:'#ffae33'});
+    gainXp(c);
+    floats.push({x:p.x, y:p.y-30, txt:'SUPPLY CRATE +'+c+' SALVAGE', ttl:1.4, col:'#ffae33'});
     boom(p.x,p.y,'#ffae33',16); rings.push({x:p.x,y:p.y,r:6,mr:70,ttl:.35,mt:.35,col:'#ffae33'});
     sfx(660,.15,'sine',.06,330); sfx(880,.2,'sine',.04,440);
   }
@@ -1767,8 +1819,8 @@ function collectPickup(p){
     if(player.shieldCharges<3){ player.shieldCharges++;
       toast('SHIELD CELL RECOVERED ('+player.shieldCharges+'/3)', '#4be0e8');
     } else {
-      credits+=40; totalCred+=40;
-      floats.push({x:p.x,y:p.y-30,txt:'CELLS FULL +40',ttl:1,col:'#4be0e8'});
+      gainXp(40);
+      floats.push({x:p.x,y:p.y-30,txt:'CELLS FULL +40 SALVAGE',ttl:1,col:'#4be0e8'});
     }
     rings.push({x:p.x,y:p.y,r:6,mr:70,ttl:.35,mt:.35,col:'#4be0e8'});
     sfx(600,.2,'sine',.06,300);
@@ -1952,10 +2004,14 @@ function update(dt){
     if(liftT>=2.6){ openSummary(); return; }
   }
 
-  /* depot beat — 1s after the round clears, then the field depot opens */
-  if(shopPending){
-    shopTimer-=dt;
-    if(shopTimer<=0){ shopPending=false; openShop(shopBonus); }
+  /* round-clear beat — 1s after the last hostile falls, then the draft opens */
+  if(draftPending){
+    draftTimer-=dt;
+    if(draftTimer<=0){ draftPending=false; openDraft(true); return; }
+  }
+  /* levelled up mid-fight? interrupt for the pick as soon as it is safe to do so */
+  else if(picksPending>0 && extractPhase===null && dropPhase===null){
+    openDraft(false); return;
   }
 
   /* movement */
@@ -2134,12 +2190,12 @@ function update(dt){
   }
   pickups=pickups.filter(p=>!p.dead);
 
-  /* scrap (nuts & bolts) */
-  for(const s of scrap){
+  /* salvage cores (nuts & bolts) — collecting them feeds the XP meter */
+  for(const s of cores){
     s.t+=dt; s.ttl-=dt; s.rot+=dt*2;
     if(s.ttl<=0){ s.dead=true; continue; }
     s.x+=s.vx*dt; s.y+=s.vy*dt;
-    /* freshly-scattered scrap (from a lost life) flies free for a moment before it can be re-collected */
+    /* freshly-scattered cores (from a lost mech) fly free for a moment before they can be re-collected */
     const scattering=(s.scatter||0)>0;
     if(scattering){ s.scatter-=dt; s.vx*=Math.pow(.28,dt); s.vy*=Math.pow(.28,dt); }
     else { s.vx*=Math.pow(.02,dt); s.vy*=Math.pow(.02,dt); }
@@ -2153,12 +2209,12 @@ function update(dt){
     posWrap(s);
     if(!scattering && d<30){
       s.dead=true;
-      credits+=s.val; totalCred+=s.val;
+      gainXp(s.val);
       floats.push({x:s.x, y:s.y-14, txt:'+'+s.val, ttl:.45, col:s.type==='bolt'?'#e8edf4':'#ffae33'});
       sfx(s.type==='bolt'?1050:1300,.05,'sine',.03,rand(-100,150));
     }
   }
-  scrap=scrap.filter(s=>!s.dead);
+  cores=cores.filter(s=>!s.dead);
 
   /* enemies */
   for(const e of enemies){
@@ -2361,21 +2417,27 @@ function update(dt){
   shake*=Math.pow(.0015,dt);
 
   /* round cleared? (not during extraction — boss kill ends the mission).
-     Hold a 1-second beat before the depot screen so the clear can register. */
-  if(!spawnQueue.length && enemies.length===0 && state==='play' && extractPhase===null && !shopPending){
-    let salvage=0;
-    for(const s of scrap){ salvage+=s.val; }
-    scrap=[];
-    if(salvage>0){ credits+=salvage; totalCred+=salvage; toast('SALVAGE SECURED +'+salvage+'', '#ffae33'); }
-    const bonus=Math.round((40+round*22)*diffLootMul()); credits+=bonus; totalCred+=bonus;
+     Hold a 1-second beat before the draft so the clear can register. */
+  if(!spawnQueue.length && enemies.length===0 && state==='play' && extractPhase===null && !draftPending){
+    let sweep=0;
+    for(const s of cores){ sweep+=s.val; }
+    cores=[];
+    const bonus=Math.round((40+round*22)*diffLootMul());
+    if(sweep>0) toast('SALVAGE SECURED +'+sweep, '#ffae33');
+    gainXp(sweep+bonus);
     checkComboAnnounce();
-    shopPending=true; shopTimer=1; shopBonus=bonus;
+    /* Every cleared round grants a pick outright, so progress never stalls — and a
+       second one from round 4, where the difficulty curve starts outrunning a
+       single-pick-per-round build. Round-clear picks are the cheap way to hand out
+       power: they land at a natural break instead of interrupting a fight. */
+    picksPending += round>=4 ? 2 : 1;
+    draftPending=true; draftTimer=1;
   }
 }
 
 /* ================= RENDER ================= */
 function renderSky(){
-  const sky = (state==='play'||state==='shop'||state==='pause'||state==='over') ? theme.sky : '#05070d';
+  const sky = (state==='play'||state==='draft'||state==='pause'||state==='over') ? theme.sky : '#05070d';
   ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
   for(const s of STARS){
     ctx.globalAlpha=.25+.6*Math.abs(Math.sin(tGlobal*s.tw+s.ph));
@@ -2416,7 +2478,7 @@ function render(){
     if(theme.ring) theme.ring.col=hsl2hex((h+40)%360,70,65);
   }
   renderSky();
-  if(!player || (state!=='play'&&state!=='shop'&&state!=='pause'&&state!=='over')) return;
+  if(!player || (state!=='play'&&state!=='draft'&&state!=='pause'&&state!=='over')) return;
 
   const shk=shake*(SAVE.fxLow?.3:1);   // reduced-FX mode damps screen shake
   const cx=W/2+rand(-shk,shk), cy=H/2+rand(-shk,shk);
@@ -2516,10 +2578,10 @@ function render(){
     ellipse(0, 16, 26*shr, 11*shr);
   }
 
-  /* scrap (under entities) */
-  for(const s of scrap){
+  /* salvage cores (under entities) */
+  for(const s of cores){
     const p=project(s.x,s.y); if(!p) continue;
-    drawScrap(s,p);
+    drawCore(s,p);
   }
 
   /* depth-sorted entities */
@@ -2668,7 +2730,7 @@ function render(){
     }
   }
 
-  /* kill-combo readout — the streak, its scrap multiplier, and the decay timer */
+  /* kill-combo readout — the streak, its salvage multiplier, and the decay timer */
   if(state==='play' && combo>=3){
     const mul=comboMul();
     const hasBoss=enemies.some(e=>e.type==='boss'&&!e.dead);
@@ -2681,7 +2743,7 @@ function render(){
     const colr = mul>=2?'#ffd700' : mul>=1.5?'#c49bff' : '#ffae33';
     ctx.shadowColor=colr; ctx.shadowBlur=12;
     ctx.fillStyle=colr;
-    ctx.fillText('✦ COMBO ×'+combo+(mul>1?'  ·  SCRAP ×'+mul:''), W/2, y);
+    ctx.fillText('✦ COMBO ×'+combo+(mul>1?'  ·  SALVAGE ×'+mul:''), W/2, y);
     ctx.shadowBlur=0;
     const bw=120;
     ctx.fillStyle='rgba(255,255,255,.15)'; ctx.fillRect(W/2-bw/2, y+8, bw, 3);
@@ -2724,7 +2786,7 @@ function render(){
   }
 
   /* soft rain — worlds flagged theme.rain (e.g. Glacia) */
-  if(theme.rain && (state==='play'||state==='shop'||state==='pause')) drawRain();
+  if(theme.rain && (state==='play'||state==='draft'||state==='pause')) drawRain();
 
   if(!vigCvs || vigCvs.width!==W || vigCvs.height!==H) makeVig();
   ctx.drawImage(vigCvs,0,0);
@@ -2744,7 +2806,7 @@ function render(){
 
   /* final-enemy locators — when no reinforcements remain and none of the last
      hostiles are visible on screen, point edge arrows at the stragglers */
-  if(state==='play' && extractPhase===null && !shopPending && !spawnQueue.length && enemies.length){
+  if(state==='play' && extractPhase===null && !draftPending && !spawnQueue.length && enemies.length){
     const zvv=ZV||1, ex=W/2, ey=H/2;
     const offs=[];
     let anyVisible=false;
@@ -2880,8 +2942,8 @@ function drawTiles(){
   }
 }
 
-/* ================= SCRAP DRAWING ================= */
-function drawScrap(s,p){
+/* ================= SALVAGE CORE DRAWING ================= */
+function drawCore(s,p){
   ctx.save(); ctx.translate(p.x,p.y); ctx.scale(p.s,p.s); ctx.rotate(s.rot);
   if(s.ttl<3 && Math.floor(s.t*6)%2===0) ctx.globalAlpha=.4;
   if(s.type==='nut'){
@@ -3496,7 +3558,8 @@ function fillPauseStats(){
   el.innerHTML=
     '<div style="color:#8b99ad">'+CHAR.name+' @ '+theme.name+'</div>'+
     '<div>ROUND '+amber(round)+' &nbsp; HOSTILES '+amber(enemies.length+spawnQueue.length)+'</div>'+
-    '<div>SCRAP '+amber(credits)+' &nbsp; MECHS '+amber(lives+'/'+maxLives)+'</div>'+
+    '<div>LEVEL '+amber(level)+' ('+xp+'/'+xpNext+') &nbsp; MECHS '+amber(lives+'/'+maxLives)+'</div>'+
+    (picksPending>0 ? '<div style="color:#ffd700">⬆ '+picksPending+' REFIT PICK'+(picksPending>1?'S':'')+' PENDING</div>' : '')+
     '<div>HULL '+amber(Math.ceil(player.hp)+'/'+player.maxhp)+' &nbsp; SHIELD CELLS '+amber('⬢'.repeat(player.shieldCharges)||'∅')+'</div>'+
     '<div style="color:#8fd4d9;font-size:10px">'+wl+'</div>';
 }
@@ -3513,8 +3576,11 @@ function updateHUD(){
   document.getElementById('uiWorld').textContent=CHAR.name+' @ '+theme.name;
   document.getElementById('uiRound').textContent=round;
   document.getElementById('uiEnemies').textContent=enemies.length+spawnQueue.length;
-  document.getElementById('uiCred').textContent=credits+'';
+  document.getElementById('uiLevel').textContent=level;
   document.getElementById('uiLives').textContent='▣'.repeat(Math.max(0,lives))+'□'.repeat(Math.max(0,maxLives-lives));
+  /* salvage meter across the top of the screen */
+  document.getElementById('xpfill').style.width=(clamp(xp/xpNext,0,1)*100)+'%';
+  document.getElementById('xptext').textContent='LV '+level+'  ·  SALVAGE '+xp+' / '+xpNext;
   const hpp=clamp(player.hp/player.maxhp,0,1);
   document.getElementById('critwarn').style.display=(player.hp>0 && hpp<.10)?'block':'none';
   document.getElementById('hpfill').style.width=(hpp*100)+'%';
@@ -3591,15 +3657,15 @@ function buildHome(){
     SAVE.conquered.prism ? '★ ALL FOUR WORLDS CONQUERED — THE SECTOR DREAMS QUIETLY ★' :
     n===BASE_WORLDS.length ? '★ SIGNAL DECRYPTED — A FOURTH WORLD AWAITS ★' :
     'WORLDS CONQUERED: '+n+' / '+BASE_WORLDS.length;
-  document.getElementById('resLine').textContent='⬡ SCRAP BANK: '+SAVE.wallet+'   ⬢ '+TIERS[SAVE.homeTier].name;
+  document.getElementById('resLine').textContent='★ CAREER STARS: '+starTotal()+' / 12   ⬢ '+TIERS[homeTier()].name;
   document.getElementById('svcRecord').textContent = SAVE.totKills>0
-    ? 'SERVICE RECORD — '+SAVE.totKills+' KILLS · BEST ROUND '+SAVE.bestRound+' · BEST COMBO ×'+SAVE.bestCombo
+    ? 'SERVICE RECORD — '+SAVE.totKills+' KILLS · BEST ROUND '+SAVE.bestRound+' · BEST LEVEL '+(SAVE.bestLevel||1)+' · BEST COMBO ×'+SAVE.bestCombo
     : '';
 }
 
 function buildHomeWorld(){
-  const tier=SAVE.homeTier;
-  document.getElementById('hwStatus').textContent='TIER '+tier+' — '+TIERS[tier].name+'   ·   💰 '+SAVE.wallet+'';
+  const tier=homeTier(), st=starTotal();
+  document.getElementById('hwStatus').textContent='TIER '+tier+' — '+TIERS[tier].name+'   ·   ★ '+st+' / 12 STARS';
   /* mothership hull grows and powers up with tier */
   const w=150+tier*34, h=44+tier*10, glow=6+tier*11;
   const eng=tier>=1;                       // engines lit once the reactor is online
@@ -3630,20 +3696,11 @@ function buildHomeWorld(){
   TIERS.forEach((tr,i)=>{
     const d=document.createElement('div'); d.className='item glass';
     d.style.marginBottom='8px';
-    const status = i<tier?'✓ BUILT' : i===tier?'● CURRENT' : i===tier+1?'NEXT' : 'LOCKED';
+    /* refit is earned with stars — nothing is purchased, so nothing can be lost */
+    const status = i<tier ? '✓ REFIT'
+                 : i===tier ? '● CURRENT'
+                 : '★ '+tr.stars+' STARS — '+Math.max(0,tr.stars-st)+' TO GO';
     d.innerHTML=`<h3 style="color:${i<=tier?'#7dff9a':i===tier+1?'#ffae33':'#667'}">T${i} ${tr.name} <span class="lvl">${status}</span></h3><p>${tr.perk}</p>`;
-    if(i===tier+1){
-      const b=document.createElement('button'); b.className='btn buy amber';
-      b.textContent='UPGRADE — '+tr.cost+'';
-      b.disabled=SAVE.wallet<tr.cost;
-      b.onclick=()=>{
-        SAVE.wallet-=tr.cost; SAVE.homeTier=i; saveGame();
-        toast('⬢ MOTHERSHIP UPGRADED: '+tr.name, '#7dff9a');
-        sfx(520,.3,'sine',.06,260); sfx(780,.4,'sine',.04,200);
-        buildHomeWorld(); buildHome();
-      };
-      d.appendChild(b);
-    }
     list.appendChild(d);
   });
 }
@@ -3698,7 +3755,7 @@ function buildMissions(){
       b.textContent='★'.repeat(diff)+(cleared?' ✓':'');
       b.onclick=(ev)=>{
         ev.stopPropagation();
-        missionDiff=diff; lastFuelCost=0;
+        missionDiff=diff;
         theme=t; hide('missions'); newGame(); musicStart(t.id); sfx(440,.2,'sine',.06,220);
       };
       row.appendChild(b);
@@ -3707,95 +3764,124 @@ function buildMissions(){
   });
 }
 
-/* ================= SHOP ================= */
-function openShop(bonus){
-  state='shop';
-  document.getElementById('shopRound').textContent=round;
-  renderShop(bonus);
-  show('shop');
-  musicDuck(.35);
-  sfx(520,.15,'sine',.05,260);
-}
-function renderShop(bonus){
-  document.getElementById('shopcred').textContent='SCRAP: '+credits+(bonus?('  (+'+bonus+' round bonus)'):'');
-  const g=document.getElementById('shopgrid'); g.innerHTML='';
-  const section=t=>{
-    const h=document.createElement('div');
-    h.style.cssText='grid-column:1/-1;font-size:11px;letter-spacing:3px;color:#8b99ad;margin:6px 0 -2px';
-    h.textContent=t; g.appendChild(h);
-  };
-  section('⚙ WEAPON ATTACHMENTS');
-  /* attachments: buy or level up */
-  WEAPONS.forEach(w=>{
-    const d=document.createElement('div'); d.className='item glass';
+/* ================= UPGRADE DRAFT =================
+   Replaces the old currency shop. Every level-up and every cleared round banks
+   one pick; a pick offers three random options drawn from what is still
+   available to this build. Nothing is priced, so a run can never be locked out
+   of progressing — the only scarcity is which three options the draw offers. */
+let draftOpts=[], draftRoundClear=false;
+
+/* one entry per thing the draft can offer, with its own availability test */
+function draftPool(){
+  const pool=[];
+  for(const w of WEAPONS){
     if(!w.owned){
-      d.innerHTML=`<h3>${w.icon} ${w.name} <span class="lvl">ATTACHMENT</span></h3><p>${w.desc}</p>`;
-      const b=document.createElement('button'); b.className='btn buy'; b.textContent='BOLT ON — '+w.cost+'';
-      b.disabled = credits<w.cost;
-      b.onclick=()=>{ credits-=w.cost; w.owned=true; w.lvl=1; player.energy[w.id]=w.cap*capMul();
-        toast('ATTACHMENT ONLINE: '+w.name, '#4be0e8');
-        checkComboAnnounce();
-        sfx(700,.12,'sine',.05,300); b.blur(); renderShop(0); };
-      d.appendChild(b);
-    } else {
-      const cost=Math.round(w.upBase*Math.pow(2,w.lvl-1));
-      d.innerHTML=`<h3>${w.icon} ${w.name} <span class="lvl">LV ${w.lvl}</span></h3><p>+22% damage, +10% rate${w.id==='aegis'?', +field radius':w.id==='tesla'?', +1 chain':''} — and flashier fire.</p>`;
-      const b=document.createElement('button'); b.className='btn buy'; b.textContent='UPGRADE — '+cost+'';
-      b.disabled = credits<cost;
-      b.onclick=()=>{ credits-=cost; w.lvl++;
-        toast(w.name+' UPGRADED TO LV '+w.lvl, tierCol());
-        checkComboAnnounce();
-        sfx(600+w.lvl*60,.15,'sine',.05,250); b.blur(); renderShop(0); };
-      d.appendChild(b);
+      pool.push({ kind:'weapon', key:'new-'+w.id, weight:3.2,
+        title:w.icon+' '+w.name, tag:'NEW ATTACHMENT', col:'#4be0e8', body:w.desc,
+        apply(){ w.owned=true; w.lvl=1; player.energy[w.id]=w.cap*capMul();
+          toast('ATTACHMENT ONLINE: '+w.name,'#4be0e8'); sfx(700,.12,'sine',.05,300); } });
+    } else if(w.lvl<WLVL_MAX){
+      pool.push({ kind:'weapon', key:'up-'+w.id, weight:2.4,
+        title:w.icon+' '+w.name+' LV'+(w.lvl+1), tag:'WEAPON UPGRADE', col:'#ffae33',
+        body:'+22% damage, +10% fire rate'+(w.id==='aegis'?', wider field':w.id==='tesla'?', +1 chain hop':w.id==='vulcan'?', +1 pellet in the fan':w.id==='swarm'?', tighter tracking':'')+'.',
+        apply(){ w.lvl++; toast(w.name+' UPGRADED TO LV '+w.lvl, tierCol()); sfx(600+w.lvl*60,.15,'sine',.05,250); } });
     }
-    g.appendChild(d);
-  });
-  /* fusion tech — synthesize new, or upgrade owned */
-  const fusionsVisible=COMBOS.filter(c=>c.owned || comboReady(c));
-  if(fusionsVisible.length) section('⚗ FUSION TECH — PAIR TWO LV2 WEAPONS TO UNLOCK MORE');
-  fusionsVisible.forEach(c=>{
-    const d=document.createElement('div'); d.className='item glass combo';
-    d.innerHTML=`<h3>⚗ ${c.name} ${c.owned?`<span class="lvl">LV ${c.lvl}</span>`:''}</h3>
-      <p>${c.desc} <span class="lvl">[${c.req.map(id=>wByid(id).name).join(' + ')}]</span></p>`;
-    const b=document.createElement('button'); b.className='btn buy'; b.style.borderColor='#c49bff'; b.style.color='#c49bff';
-    if(!c.owned){
-      b.textContent='SYNTHESIZE — '+c.cost+'';
-      b.disabled = credits<c.cost;
-      b.onclick=()=>{ credits-=c.cost; c.owned=true; c.lvl=1;
-        toast('⚗ FUSION ONLINE: '+c.name, '#c49bff');
-        sfx(880,.3,'sine',.06,440); sfx(1320,.4,'sine',.04,220);
-        b.blur(); renderShop(0); };
-    } else {
-      const uc=comboUpCost(c);
-      b.textContent='AMPLIFY — '+uc+'';
-      b.disabled = credits<uc;
-      b.onclick=()=>{ credits-=uc; c.lvl++;
-        toast('⚗ '+c.name+' AMPLIFIED TO LV '+c.lvl, '#c49bff');
-        sfx(980+c.lvl*80,.25,'sine',.05,300);
-        b.blur(); renderShop(0); };
+  }
+  for(const c of COMBOS){
+    if(!c.owned && comboReady(c)){
+      pool.push({ kind:'fusion', key:'new-'+c.id, weight:3.6,
+        title:'⚗ '+c.name, tag:'FUSION TECH', col:'#c49bff',
+        body:c.desc+'  ['+c.req.map(id=>wByid(id).name).join(' + ')+']',
+        apply(){ c.owned=true; c.lvl=1; toast('⚗ FUSION ONLINE: '+c.name,'#c49bff');
+          sfx(880,.3,'sine',.06,440); sfx(1320,.4,'sine',.04,220); } });
+    } else if(c.owned && c.lvl<CLVL_MAX){
+      pool.push({ kind:'fusion', key:'up-'+c.id, weight:1.8,
+        title:'⚗ '+c.name+' LV'+(c.lvl+1), tag:'FUSION AMPLIFY', col:'#c49bff', body:c.desc,
+        apply(){ c.lvl++; toast('⚗ '+c.name+' AMPLIFIED TO LV '+c.lvl,'#c49bff'); sfx(980+c.lvl*80,.25,'sine',.05,300); } });
     }
-    d.appendChild(b);
-    g.appendChild(d);
-  });
-  section('▲ MECH SYSTEMS');
-  /* global upgrades */
-  UPGRADES.forEach(u=>{
-    const d=document.createElement('div'); d.className='item glass';
+  }
+  for(const u of UPGRADES){
     const isRepair=u.id==='repair', isCell=u.id==='cell';
-    const cost=upgCost(u);
-    d.innerHTML=`<h3>${u.name} ${isRepair?'':`<span class="lvl">LV ${u.lvl}</span>`}</h3><p>${u.desc}</p>`;
-    const b=document.createElement('button'); b.className='btn buy amber'; b.textContent='BUY — '+cost+'';
-    b.disabled = credits<cost || (isRepair && player.hp>=player.maxhp) || (isCell && player.shieldCharges>=3);
-    b.onclick=()=>{
-      credits-=cost;
-      if(u.id==='hull'){ player.maxhp+=30; player.hp=Math.min(player.maxhp, player.hp+30); u.lvl++; }
-      else if(isRepair){ player.hp=player.maxhp; u.lvl++; }
-      else if(isCell){ player.shieldCharges=Math.min(3,player.shieldCharges+1); u.lvl++; }
-      else u.lvl++;
-      sfx(600,.1,'sine',.05,200); b.blur(); renderShop(0);
-    };
-    d.appendChild(b); g.appendChild(d);
+    if(isRepair){
+      /* only offered when it would actually do something */
+      if(player.hp < player.maxhp*.85){
+        pool.push({ kind:'system', key:'repair', weight:2.6,
+          title:'✚ '+u.name, tag:'FIELD REPAIR', col:'#7dff9a', body:'Restore the hull to full, right now.',
+          apply(){ player.hp=player.maxhp; u.lvl++; toast('HULL RESTORED','#7dff9a'); sfx(520,.3,'sine',.06,260); } });
+      }
+      continue;
+    }
+    if(isCell && player.shieldCharges>=3) continue;
+    if(u.lvl>=(ULVL_MAX[u.id]||6)) continue;
+    pool.push({ kind:'system', key:'sys-'+u.id, weight:2,
+      title:'▲ '+u.name+(isCell?'':' LV'+(u.lvl+1)), tag:'MECH SYSTEM', col:'#e7edf5', body:u.desc,
+      apply(){
+        if(u.id==='hull'){ player.maxhp+=30; player.hp=Math.min(player.maxhp, player.hp+30); }
+        else if(isCell) player.shieldCharges=Math.min(3,player.shieldCharges+1);
+        u.lvl++;
+        toast(u.name+' INSTALLED', '#ffae33'); sfx(600,.1,'sine',.05,200);
+      } });
+  }
+  return pool;
+}
+
+/* weighted draw of up to 3 distinct options */
+function drawDraft(n){
+  const pool=draftPool(), out=[];
+  while(out.length<n && pool.length){
+    let total=0; for(const o of pool) total+=o.weight;
+    let r=Math.random()*total, pick=pool.length-1;
+    for(let i=0;i<pool.length;i++){ r-=pool[i].weight; if(r<=0){ pick=i; break; } }
+    out.push(pool.splice(pick,1)[0]);
+  }
+  return out;
+}
+
+function openDraft(roundClear){
+  draftRoundClear=!!roundClear;
+  draftOpts=drawDraft(3);
+  /* build fully maxed out? nothing left to offer — hand control straight back,
+     never leaving the game parked in the 'draft' state with no overlay up */
+  if(!draftOpts.length){
+    picksPending=0;
+    hide('draft');
+    if(draftRoundClear){ draftRoundClear=false; startRound(); }
+    else state='play';
+    musicDuck(1);
+    return;
+  }
+  state='draft';
+  renderDraft();
+  show('draft');
+  musicDuck(.35);
+  sfx(880,.18,'sine',.05,300);
+}
+
+function renderDraft(){
+  document.getElementById('draftHead').textContent =
+    draftRoundClear ? 'ROUND '+round+' CLEARED — SELECT A REFIT' : 'LEVEL '+level+' — SELECT A REFIT';
+  document.getElementById('draftSub').textContent =
+    'CHOOSE ONE' + (picksPending>1 ? '   ·   '+(picksPending-1)+' MORE PICK'+(picksPending>2?'S':'')+' BANKED' : '');
+  const g=document.getElementById('draftgrid'); g.innerHTML='';
+  draftOpts.forEach(o=>{
+    const d=document.createElement('div');
+    d.className='card glass'+(o.kind==='fusion'?' combo':'');
+    d.innerHTML=`<div class="ctag" style="color:${o.col}">${o.tag}</div>
+      <h3 style="color:${o.col}">${o.title}</h3><p>${o.body}</p>
+      <div class="ctake" style="color:${o.col}">▸ INSTALL</div>`;
+    d.onclick=()=>takeDraft(o);
+    g.appendChild(d);
   });
+}
+
+function takeDraft(o){
+  o.apply();
+  checkComboAnnounce();
+  picksPending=Math.max(0,picksPending-1);
+  hide('draft');
+  if(picksPending>0){ openDraft(draftRoundClear); return; }   // spend banked picks back to back
+  if(draftRoundClear){ draftRoundClear=false; startRound(); musicDuck(1); return; }
+  state='play'; musicDuck(1);
 }
 
 /* ================= FX HELPERS ================= */
@@ -3980,7 +4066,7 @@ function musicDuck(v){ if(MUSIC.master&&AC) MUSIC.master.gain.setTargetAtTime(.1
 function musicToggle(){
   MUSIC.on=!MUSIC.on;
   if(!MUSIC.on){ musicStop(); if(MUSIC.master&&AC) MUSIC.master.gain.setTargetAtTime(.0001,AC.currentTime,.05); }
-  else if(MUSIC.id && (state==='play'||state==='shop')) musicStart(MUSIC.id);
+  else if(MUSIC.id && (state==='play'||state==='draft')) musicStart(MUSIC.id);
   toast('MUSIC '+(MUSIC.on?'ON':'OFF'), '#9fe8ff');
 }
 
@@ -4001,7 +4087,6 @@ function loop(now){
 
 /* ================= BUTTONS ================= */
 document.getElementById('btnStart').onclick=()=>{ hide('menu'); state='hangar'; buildHangar(); show('hangar'); sfx(440,.2,'sine',.06,220); };
-document.getElementById('btnNext').onclick=e=>{ hide('shop'); e.target.blur(); startRound(); musicDuck(1); sfx(440,.15,'sine',.05,180); };
 document.getElementById('btnRetry').onclick=()=>{
   hide('over'); newGame(); musicStart(theme.id);
 };
