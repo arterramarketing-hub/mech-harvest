@@ -277,6 +277,17 @@
   .item .buy{width:100%;padding:6px 0;font-size:var(--t2)}
   .item .lvl{color:var(--cyan);font-size:var(--t1)}
   .statline{font-size:var(--t3);margin:8px 0;color:var(--dim)}
+
+  /* pause menu — every control has to be reachable without scrolling, and a phone in
+     landscape gives us barely 340px of height to put them in */
+  #pauseStats{text-align:left;font-size:var(--t2);line-height:2;letter-spacing:1px;
+    color:var(--dim);max-width:280px;margin:0 auto 14px}
+  #zoomRow{margin-bottom:14px}
+  body.touch #pauseStats{font-size:var(--t1);line-height:1.55;max-width:min(430px,88vw);margin-bottom:7px}
+  body.touch #zoomRow{margin-bottom:7px}
+  body.touch #pause .panel{padding:10px 12px}
+  body.touch #pause h2{margin-bottom:5px}
+  body.touch #pause .btnbig{padding:7px 20px}
   .statline b{color:var(--amber)}
 
   /* ---------- narrow viewports (small laptops, tablets) ----------
@@ -492,8 +503,8 @@
 <div class="overlay" id="pause">
   <div class="panel center glass">
     <h2 style="text-align:center">PAUSED</h2>
-    <div id="pauseStats" class="mono tOnly" style="display:none;text-align:left;font-size:11px;line-height:2;letter-spacing:1px;color:#a5b4c8;max-width:280px;margin:0 auto 14px"></div>
-    <div id="zoomRow" class="tOnly" style="display:none;margin-bottom:14px">
+    <div id="pauseStats" class="mono tOnly" style="display:none"></div>
+    <div id="zoomRow" class="tOnly" style="display:none">
       <div class="mono" style="font-size:9px;letter-spacing:2px;color:#8b99ad;margin-bottom:6px">CAMERA ZOOM ON HERO — <span id="zoomPct">40%</span></div>
       <input type="range" id="zoomSlider" min="0" max="100" value="40" style="width:240px;max-width:78vw;accent-color:var(--amber);vertical-align:middle">
       <div class="mono" style="font-size:8px;letter-spacing:2px;color:#5f6b7c;margin-top:4px;display:flex;justify-content:space-between;width:240px;max-width:78vw;margin-left:auto;margin-right:auto">
