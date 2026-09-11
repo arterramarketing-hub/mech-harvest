@@ -25,6 +25,9 @@
   /* screen-space overlays (flash, banners, rain, vignette) ride above the GPU layer */
   #ovl{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;display:none}
   body.gpu #pxc, body.gpu #ovl{display:block}
+  /* with the shader pass live the world is drawn by the GPU from this canvas as a
+     texture; opacity (not visibility) keeps it receiving touch input */
+  body.gpuworld #cvs{opacity:0}
 
   /* touch controls (shown once a touch is detected) */
   #touchui{position:fixed;right:18px;bottom:170px;display:none;flex-direction:column;gap:14px;z-index:6}
@@ -1266,6 +1269,7 @@ function activateDash(){
   P.dashT=DASH_T; P.dashCd=DASH_CD; tutDid.dash=true;
   P.invuln=Math.max(P.invuln, DASH_T+.08);   // thruster i-frames
   rings.push({x:P.x,y:P.y,r:8,mr:54,ttl:.22,mt:.22,col:'#9fd8ff'});
+  shockwave(P.x,P.y,.34,.3);
   noiseHit(.12,.05,'bandpass',1400); sfx(240,.14,'sawtooth',.05,260);
 }
 
@@ -1570,6 +1574,7 @@ function damageEnemy(e, amt, showNum, crit){
       pickups.push({type:'nuke', x:wrap(e.x), y:wrap(e.y), ttl:15, t:0});
       toast('☢ BUNKER LEVELED — NUKE CORE EXPOSED', '#ffe95c');
       boom(e.x,e.y,'#c8b28a',30);
+      shockwave(e.x,e.y,.8,.55);
       rings.push({x:e.x,y:e.y,r:12,mr:150,ttl:.5,mt:.5,col:'#ffb52e'});
       sfx(55,.7,'sawtooth',.09,-25); noiseHit(.6,.06,'lowpass',600);
     }
@@ -1610,6 +1615,7 @@ function gainXp(amt){
 
 function onBossKilled(e){
   slowmoT=1.1;   // savor the kill
+  shockwave(e.x,e.y,1.4,1.0);
   dropPowerup(e.x,e.y);
   dropCores(e.x+30,e.y+20, 200);
   /* on a 2-boss (3-star) fight, don't extract until every apex machine is down */
@@ -1699,6 +1705,7 @@ function destroyMech(){
   for(let i=0;i<5;i++) rings.push({x:P.x,y:P.y,r:8+i*6,mr:120+i*55,ttl:.5+i*.09,mt:.5+i*.09,col:i%2?'#ffae33':'#ff5b3b'});
   flashT=Math.max(flashT,.5);
   shake=18;
+  shockwave(P.x,P.y,1.1,.7);
   const chunkCols=['#7c8797','#59636f','#3a434f','#a5b0be',CHAR.col,tierCol()];
   const nChunks=Math.max(0,Math.min(72, MAX_PARTS-parts.length));
   for(let i=0;i<nChunks;i++){                       // hull chunks blasted outward + upward
@@ -1916,6 +1923,7 @@ function collectPickup(p){
   }
   else if(p.type==='nuke'){
     flashT=.8; shake=20;
+    shockwave(p.x,p.y,1.25,.85);
     toast('☢ TACTICAL NUKE DEPLOYED', '#ffe95c');
     sfx(40,1,'sawtooth',.1,-15);
     for(const e of [...enemies]){
@@ -1942,6 +1950,7 @@ function bossUpdate(e, dt, dv, d){
   if(!e.enraged && e.hp<e.maxhp*.5){
     e.enraged=true; e.spd*=1.18;
     toast('⚠ '+BOSSES[id].name+' IS ENRAGED', '#ff4b4b');
+    shockwave(e.x,e.y,.95,.8);
     rings.push({x:e.x,y:e.y,r:20,mr:220,ttl:.5,mt:.5,col:'#ff4b4b'});
     shake=Math.min(shake+10,18);
     sfx(60,.8,'sawtooth',.09,-20); noiseHit(.5,.06,'lowpass',600);
@@ -2052,6 +2061,7 @@ function update(dt){
       if(dropBomb){
         /* entry bomb — clear the landing zone */
         flashT=Math.max(flashT,.3);
+        shockwave(P.x,P.y,1.0,.65);
         rings.push({x:P.x,y:P.y,r:16,mr:340,ttl:.5,mt:.5,col:'#ffae33'});
         boom(P.x,P.y,'#ffae33',36);
         sfx(48,.7,'sawtooth',.1,-18);
@@ -4259,22 +4269,37 @@ async function pxBoot(){
        the container alone would silently alpha-blend the glows instead of adding light. */
     PX.bloom=new PIXI.Container();
     PX.bloom.filters=[new PIXI.BlurFilter({ strength:3, quality:2, blendMode:'add' })];
+    /* the finished 2D world, handed to the GPU as one texture */
+    PX.worldTex=PIXI.Texture.from(cvs);
+    PX.worldSpr=new PIXI.Sprite(PX.worldTex);
     PX.lines=new PIXI.Graphics();
     PX.crisp=new PIXI.Container();
     PX.text=new PIXI.Container();
     PX.world.addChild(PX.bloom, PX.lines, PX.crisp, PX.text);
-    app.stage.addChild(PX.world);
+    app.stage.addChild(PX.worldSpr, PX.world);
+    /* one fragment shader over world + effects together */
+    WARP.filter=new PIXI.Filter({
+      glProgram: PIXI.GlProgram.from({ vertex:WARP_VERT, fragment:WARP_FRAG }),
+      resources:{ warpUniforms:{
+        uTime:{value:0,type:'f32'}, uHeat:{value:0,type:'f32'},
+        uChroma:{value:0,type:'f32'}, uAspect:{value:1,type:'f32'},
+        uShock:{value:new Float32Array([0,0,0,0]),type:'vec4<f32>'} } },
+    });
+    app.stage.filters=[WARP.filter];
+    document.body.classList.add('gpuworld');
 
     PX.res=DPR;
     PX.ready=true; PX.failed=false;
     /* the user may have toggled the layer off while init was still awaiting */
     if(PX.on){
       document.body.classList.add('gpu');
+      document.body.classList.add('gpuworld');
       MAX_PARTS=PX_GPU_CAP;
       toast('⚡ GPU FX LAYER ONLINE — '+app.renderer.name.toUpperCase(), '#9fe8ff');
     }
   }catch(e){
-    PX.failed=true; document.body.classList.remove('gpu'); MAX_PARTS=PX_SOFT_CAP;
+    PX.failed=true; document.body.classList.remove('gpu');
+    document.body.classList.remove('gpuworld'); MAX_PARTS=PX_SOFT_CAP;
     toast('GPU FX UNAVAILABLE — USING 2D RENDERER', '#ff8888');
   }
   PX.booting=false;
@@ -4327,6 +4352,9 @@ function pxDraw(){
   }
   pxResetPools();
   PX.lines.clear();
+  /* push this frame's 2D world up to the GPU, then let the shader have all of it */
+  PX.worldTex.source.update();
+  PX.worldSpr.width=W; PX.worldSpr.height=H;
   /* no world on screen (menu, hangar, summary) — present an empty transparent frame */
   if(!player || (state!=='play' && state!=='draft' && state!=='pause' && state!=='over')){
     app.render(); return;
@@ -4430,15 +4458,160 @@ function pxToggle(){
   PX.on=!PX.on;
   if(PX.on){
     if(!PX.ready){ pxBoot(); }
-    else { document.body.classList.add('gpu'); MAX_PARTS=PX_GPU_CAP; }
+    else {
+      /* both classes must come back: 'gpuworld' is what fades the 2D canvas once the
+         GPU is drawing the world from it, and without it the world renders twice */
+      document.body.classList.add('gpu');
+      document.body.classList.add('gpuworld');
+      MAX_PARTS=PX_GPU_CAP;
+    }
   } else {
     document.body.classList.remove('gpu');
+    document.body.classList.remove('gpuworld');
     MAX_PARTS=PX_SOFT_CAP;
     if(parts && parts.length>MAX_PARTS) parts.length=MAX_PARTS;
   }
   SAVE.gpuFx=PX.on; saveGame();
   toast('GPU FX '+(PX.on?'ON':'OFF'), '#9fe8ff');
   pxLabel();
+}
+
+/* ================= FULL-SCREEN SHADER PASS =================
+   The 2D world canvas is handed to the GPU as a single texture and drawn as the
+   bottom layer of the Pixi scene, with the effects band composited over it. One
+   fragment shader then runs across the whole thing, which is what makes these
+   effects possible at all: a filter on the effects layer alone could only distort
+   bullets and sparks, leaving the planet underneath perfectly still.
+
+   Three effects share the one pass:
+     HEAT HAZE  - continuous air-shimmer, per world (Cinder bakes, Prism wavers)
+     SHOCKWAVE  - an expanding ring that bends the picture as it passes
+     CHROMA     - RGB separation, for hull-critical and heavy impacts
+   The HUD, banners and vignette live on the overlay canvas above this pass, so
+   they stay readable and perfectly straight while the world buckles. */
+
+const WARP_VERT = `in vec2 aPosition;
+out vec2 vTextureCoord;
+uniform vec4 uInputSize;
+uniform vec4 uOutputFrame;
+uniform vec4 uOutputTexture;
+vec4 filterVertexPosition(void){
+  vec2 p = aPosition * uOutputFrame.zw + uOutputFrame.xy;
+  p.x = p.x * (2.0 / uOutputTexture.x) - 1.0;
+  p.y = p.y * (2.0 * uOutputTexture.z / uOutputTexture.y) - uOutputTexture.z;
+  return vec4(p, 0.0, 1.0);
+}
+void main(void){
+  gl_Position = filterVertexPosition();
+  vTextureCoord = aPosition * (uOutputFrame.zw * uInputSize.zw);
+}`;
+
+const WARP_FRAG = `in vec2 vTextureCoord;
+uniform sampler2D uTexture;
+uniform vec4 uInputClamp;
+uniform float uTime;
+uniform float uHeat;
+uniform float uChroma;
+uniform float uAspect;
+uniform vec4 uShock;          /* xy = centre (uv), z = radius, w = amplitude */
+
+vec2 clampUV(vec2 uv){ return clamp(uv, uInputClamp.xy, uInputClamp.zw); }
+
+void main(void){
+  vec2 uv = vTextureCoord;
+
+  /* --- heat haze: air shimmering off hot ground --- */
+  if(uHeat > 0.001){
+    uv.x += sin(uv.y * 120.0 + uTime * 3.1) * 0.0022 * uHeat;
+    uv.y += sin(uv.x * 90.0  + uTime * 2.4) * 0.0014 * uHeat;
+    uv.x += sin(uv.y * 26.0  - uTime * 1.3) * 0.0007 * uHeat;
+  }
+
+  /* --- shockwave: a ring of displacement racing outward --- */
+  if(uShock.w > 0.001){
+    vec2 d = uv - uShock.xy;
+    d.x *= uAspect;
+    float r = length(d) + 1e-6;
+    float ring = smoothstep(0.085, 0.0, abs(r - uShock.z));
+    uv += (d / r) * ring * uShock.w * 0.055;
+  }
+
+  /* --- chromatic separation --- */
+  if(uChroma > 0.001){
+    vec2 ctr = uv - vec2(0.5);
+    vec2 off = ctr * uChroma * 0.035;
+    vec4 c;
+    c.r = texture(uTexture, clampUV(uv + off)).r;
+    c.g = texture(uTexture, clampUV(uv)).g;
+    c.b = texture(uTexture, clampUV(uv - off)).b;
+    c.a = texture(uTexture, clampUV(uv)).a;
+    gl_FragColor = c;
+    return;
+  }
+  gl_FragColor = texture(uTexture, clampUV(uv));
+}`;
+
+/* live shader state, driven from gameplay */
+const WARP = { heat:0, heatTarget:0, chroma:0, shock:null, filter:null };
+
+/* Fire a screen-bending shockwave from a world position.
+   amp is roughly "how hard" — 1 is a big explosion, 0.35 a dash. */
+function shockwave(wx, wy, amp, dur){
+  if(!pxActive() || SAVE.fxLow) return;          // reduced-FX mode opts out of screen motion
+  const cur=WARP.shock;
+  if(cur && cur.amp > amp*1.15) return;          // don't let a small pop stomp a big one
+  WARP.shock={ wx, wy, amp, t:0, dur:dur||.55 };
+}
+
+function warpUpdate(rdt){
+  const u = WARP.filter && WARP.filter.resources.warpUniforms.uniforms;
+  if(!u) return;
+  u.uTime = tGlobal;
+  u.uAspect = W/Math.max(1,H);
+
+  /* heat: a per-world baseline, pushed higher while you are actually on fire */
+  let base = 0;
+  if(player && (state==='play'||state==='draft'||state==='pause')){
+    if(theme.id==='cinder') base = .70;
+    else if(theme.id==='prism') base = .5;
+    if(player.burnT>0) base += .7;
+  }
+  WARP.heatTarget = SAVE.fxLow ? 0 : base;
+  WARP.heat += (WARP.heatTarget-WARP.heat)*Math.min(1, rdt*3);
+  u.uHeat = WARP.heat;
+
+  /* chroma: hull-critical pulse, a kick on every hit, a constant shimmer on Prism */
+  let ch = 0;
+  if(player && state==='play'){
+    if(player.hp>0 && player.hp<player.maxhp*.25){
+      const sev=1-(player.hp/(player.maxhp*.25));
+      ch = Math.max(ch, .10+.30*sev*(.6+.4*Math.abs(Math.sin(tGlobal*9))));
+    }
+    if(player.hitCd>0) ch = Math.max(ch, player.hitCd*.55);
+    if(theme.id==='prism') ch = Math.max(ch, .08+.05*Math.sin(tGlobal*1.7));
+  }
+  u.uChroma = SAVE.fxLow ? 0 : ch;
+
+  /* reduced-FX mode also kills a wave already in flight, not just new ones */
+  if(SAVE.fxLow && WARP.shock) WARP.shock=null;
+  /* shockwave: expand the ring, then let it die */
+  const s=WARP.shock;
+  if(s){
+    s.t += rdt;
+    const k = s.t/s.dur;
+    if(k>=1){ WARP.shock=null; u.uShock[3]=0; }
+    else {
+      const p = project(s.wx, s.wy);
+      if(!p){ WARP.shock=null; u.uShock[3]=0; }
+      else {
+        const zv=ZV||1;
+        u.uShock[0] = (camX + p.x*zv)/W;
+        u.uShock[1] = (camY + p.y*zv)/H;
+        u.uShock[2] = k*0.75;                      // radius sweeps outward in uv space
+        u.uShock[3] = s.amp*(1-k)*(1-k);           // ease out
+      }
+    }
+  } else u.uShock[3]=0;
 }
 
 /* ================= LOOP ================= */
@@ -4453,6 +4626,7 @@ function loop(now){
   pollPad();
   if(state==='play'){ update(dt); updateHUD(); }
   render();
+  if(pxActive()) warpUpdate(rdt);
   if(pxActive()){
     /* the effects layer is strictly cosmetic: if it ever throws, drop back to the
        2D renderer rather than letting a render bug take the whole loop down */
@@ -4461,7 +4635,9 @@ function loop(now){
       /* revert on the first fault: a half-drawn effects layer would otherwise sit
          frozen over a moving world, which reads as a hard freeze to the player */
       PX.errN++; PX.failed=true; PX.on=false;
-      document.body.classList.remove('gpu'); MAX_PARTS=PX_SOFT_CAP;
+      document.body.classList.remove('gpu');
+      document.body.classList.remove('gpuworld');
+      MAX_PARTS=PX_SOFT_CAP;
       if(parts && parts.length>MAX_PARTS) parts.length=MAX_PARTS;
       pxLabel();
       toast('GPU FX FAULT — REVERTED TO 2D RENDERER', '#ff8888');
