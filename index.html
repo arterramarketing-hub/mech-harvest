@@ -20,6 +20,11 @@
   html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:#cfd6e0;
     touch-action:none;-webkit-touch-callout:none;overscroll-behavior:none}
   #cvs{display:block;width:100vw;height:100vh;touch-action:none}
+  /* GPU effects layer — transparent, sits directly over the 2D world canvas */
+  #pxc{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;display:none}
+  /* screen-space overlays (flash, banners, rain, vignette) ride above the GPU layer */
+  #ovl{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;display:none}
+  body.gpu #pxc, body.gpu #ovl{display:block}
 
   /* touch controls (shown once a touch is detected) */
   #touchui{position:fixed;right:18px;bottom:170px;display:none;flex-direction:column;gap:14px;z-index:6}
@@ -239,6 +244,9 @@
 </head>
 <body>
 <canvas id="cvs"></canvas>
+<canvas id="pxc"></canvas>
+<canvas id="ovl"></canvas>
+<script src="vendor/pixi.min.js"></script>
 
 <div id="hud">
   <div id="xpwrap"><div id="xpfill"></div><span id="xptext" class="mono"></span></div>
@@ -434,6 +442,7 @@
     <button class="btn" id="btnResume">RESUME</button>
     &nbsp;<button class="btn" id="btnMusicP">♪ MUSIC</button>
     &nbsp;<button class="btn" id="btnFx">FX: FULL</button>
+    &nbsp;<button class="btn" id="btnGpu">GPU FX</button>
     &nbsp;<button class="btn" id="btnAbort">RETURN TO BASE</button>
   </div>
 </div>
@@ -441,13 +450,22 @@
 <script>
 'use strict';
 /* ================= CORE ================= */
-const cvs = document.getElementById('cvs'), ctx = cvs.getContext('2d');
+const cvs = document.getElementById('cvs');
+/* `ctx` is reassignable on purpose: the GPU layer temporarily points it at an
+   offscreen canvas so the existing 2D draw code can bake itself into textures. */
+let ctx = cvs.getContext('2d');
+const ctxMain = ctx;
+/* second 2D context layered above the GPU effects; the overlay pass simply retargets
+   `ctx` at it, so the existing overlay drawing code is reused verbatim. */
+const ovlCvs = document.getElementById('ovl');
+const ctxOvl = ovlCvs.getContext('2d');
 let W = 0, H = 0, DPR = 1;
 function resize(){
   /* render at native device resolution (crisp on phones), draw in CSS-pixel space */
   DPR = Math.min(window.devicePixelRatio||1, 2.5);   // capped — full 3x murders phone GPUs on a fullscreen canvas
   W = innerWidth; H = innerHeight;
   cvs.width = Math.round(W*DPR); cvs.height = Math.round(H*DPR);
+  ovlCvs.width = cvs.width; ovlCvs.height = cvs.height;
 }
 addEventListener('resize', resize); resize();
 /* camera zoom — touch devices offer three camera distances (set in the pause menu):
@@ -632,6 +650,7 @@ addEventListener('keydown', e=>{
   if(state==='play' && e.code==='Space' && !e.repeat) activateShield();
   if(state==='play' && (e.code==='ShiftLeft'||e.code==='ShiftRight') && !e.repeat) activateDash();
   if(e.code==='KeyM' && (state==='play'||state==='draft'||state==='pause')) musicToggle();
+  if(e.code==='KeyG' && !e.repeat) pxToggle();
   if(e.code==='KeyP' || e.code==='Escape'){
     if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); }
     else if(state==='pause'){ hide('pause'); state='play'; musicDuck(1); }
@@ -734,6 +753,7 @@ if(typeof SAVE.totKills!=='number') SAVE.totKills=0;
 if(typeof SAVE.bestRound!=='number') SAVE.bestRound=0;
 if(typeof SAVE.bestCombo!=='number') SAVE.bestCombo=0;
 if(typeof SAVE.fxLow!=='boolean') SAVE.fxLow=false;   // reduced screen shake / flashes
+if(typeof SAVE.gpuFx!=='boolean') SAVE.gpuFx=true;    // GPU (WebGL) effects layer
 if(typeof SAVE.zoomVal!=='number') SAVE.zoomVal = ({close:.72,med:.4,far:0}[SAVE.zoomMode]) ?? .4;
 function saveGame(){ try{ localStorage.setItem('steelharvest_save', JSON.stringify(SAVE)); }catch(e){} }
 
@@ -887,6 +907,7 @@ const COMBO_WINDOW=4;
 const comboMul=()=>combo>=30?1.75:combo>=15?1.5:combo>=8?1.3:combo>=4?1.15:1;
 /* juice timers: hit-stop on heavy kills, slow-mo on apex kills */
 let hitStopT=0, slowmoT=0;
+let camX=0, camY=0;   // live camera offset, shared with the GPU FX layer
 let dmgDirs=[];                     // incoming-damage direction pings (screen-edge arcs)
 const DASH_T=.16, DASH_CD=1.6, DASH_SPD=1350;   // thruster dash
 let roundMod=null;                               // themed-round modifier: 'horde' | 'elite' | null
@@ -2482,6 +2503,7 @@ function render(){
 
   const shk=shake*(SAVE.fxLow?.3:1);   // reduced-FX mode damps screen shake
   const cx=W/2+rand(-shk,shk), cy=H/2+rand(-shk,shk);
+  camX=cx; camY=cy;                    // shared with the GPU FX layer so both cameras agree
   ctx.save();
   ctx.translate(cx,cy);
   const zv=ZV=viewZoom();
@@ -2594,7 +2616,13 @@ function render(){
   for(const e of enemies) e._p=null;
   for(const pk of pickups) pk._p=null;
 
-  /* projectiles */
+  /* effects band — projectiles through combat text.
+     When the GPU layer is live it draws all of this instead (see pxDraw). */
+  if(!pxActive() || !PX.fontReady){
+  /* projectiles (all of this when 2D owns the band; combat text only when the
+     GPU layer has no bitmap font, so damage numbers can never silently vanish) */
+  const fxBand = !pxActive();
+  if(fxBand){
   for(const b of bullets){
     const p=project(b.x,b.y); if(!p) continue;
     ctx.globalCompositeOperation='lighter';
@@ -2674,6 +2702,7 @@ function render(){
   }
   ctx.globalAlpha=1;
 
+  }
   /* floating text */
   ctx.textAlign='center';
   const fscale=Math.min(2.2,1/zv);   // keep combat text readable when the camera is pulled back
@@ -2684,6 +2713,8 @@ function render(){
     ctx.fillStyle=f.col; ctx.fillText(f.txt, q.x, q.y);
   }
   ctx.globalAlpha=1;
+
+  }
 
   /* atmosphere rim */
   const isRed = theme.id==='cinder';                 // Cinder — the red foundry world burns with a red halo
@@ -2712,6 +2743,13 @@ function render(){
   drawWorldRing(true);
 
   ctx.restore();
+
+  /* ---- screen-space overlay pass ----
+     With the GPU layer live, everything from here on is drawn to the overlay canvas
+     that sits ABOVE it, so flashes, banners, combat readouts, rain and the vignette
+     keep their original position at the very top of the frame. */
+  const ovlOn = pxActive();
+  if(ovlOn){ ctx = ctxOvl; ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,W,H); }
 
   if(flashT>0){
     const fa=Math.min(1,flashT*1.4)*(SAVE.fxLow?.35:1);
@@ -2789,7 +2827,7 @@ function render(){
   if(theme.rain && (state==='play'||state==='draft'||state==='pause')) drawRain();
 
   if(!vigCvs || vigCvs.width!==W || vigCvs.height!==H) makeVig();
-  ctx.drawImage(vigCvs,0,0);
+  ctx.drawImage(vigCvs,0,0);   // on the overlay canvas when the GPU layer is live
 
   /* hull-critical: the mech's cameras are failing — slice-glitch the whole frame (below 10%) */
   if(!SAVE.fxLow && state==='play' && player.hp>0 && player.hp<player.maxhp*.10){
@@ -2847,6 +2885,7 @@ function render(){
       ctx.beginPath(); ctx.arc(s.sx+s.dx*44, s.sy+s.dy*44, 22,0,7); ctx.fill();
     }
   }
+  if(ovlOn) ctx = ctxMain;
 }
 
 /* soft ambient rain — thin translucent streaks, stateless (seeded by index) */
@@ -3885,7 +3924,7 @@ function takeDraft(o){
 }
 
 /* ================= FX HELPERS ================= */
-const MAX_PARTS=650;   // hard cap — prevents slowdown death-spirals in heavy fights
+let MAX_PARTS=650;     // hard cap — prevents slowdown death-spirals in heavy fights
 function boom(x,y,col,n){
   for(let i=0;i<n && parts.length<MAX_PARTS;i++){
     const a=rand(0,Math.PI*2), s=rand(60,320);
@@ -4070,6 +4109,269 @@ function musicToggle(){
   toast('MUSIC '+(MUSIC.on?'ON':'OFF'), '#9fe8ff');
 }
 
+/* ================= GPU FX LAYER (PixiJS) =================
+   Phase 1 of the WebGL port. A transparent Pixi canvas is composited over the
+   2D world canvas and takes the effects band — projectiles, beams, arcs, rings,
+   particles, combat text — plus the vignette that sits on top of them. Those
+   layers already draw last in the 2D renderer, so lifting them out preserves
+   z-order exactly while moving the heaviest per-frame work onto the GPU.
+
+   The world itself (planet, tiles, entities, mech) stays on Canvas 2D for now;
+   `bakeTex` below is the bridge that will carry it over in the next phase: it
+   points the global `ctx` at an offscreen canvas, runs the *existing* 2D draw
+   code, and hands back a GPU texture — so ported art stays pixel-identical
+   instead of being redrawn by hand. */
+const PX = {
+  on:true, ready:false, failed:false, booting:false,
+  app:null, world:null, bloom:null, lines:null, crisp:null, text:null,
+  tex:{}, pools:{}, fontReady:false, errN:0, res:1,
+};
+const pxActive = ()=>PX.on && PX.ready && !PX.failed;
+/* Particle budget. The GPU cap is deliberately a modest step up, not the maximum the
+   renderer could batch: per-particle CPU cost (update tick, project(), sprite write) is
+   unchanged by moving to WebGL, and a low-end phone also pays for the blur pass. */
+const PX_SOFT_CAP=650, PX_GPU_CAP=2500;
+
+/* bake existing 2D draw code into a GPU texture (see header) */
+function bakeTex(key, w, h, draw){
+  if(PX.tex[key]) return PX.tex[key];
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,Math.ceil(w)); c.height=Math.max(1,Math.ceil(h));
+  const prev=ctx;
+  ctx=c.getContext('2d');
+  ctx.translate(c.width/2, c.height/2);   // draw around the origin, like the entity code does
+  try{ draw(); } finally { ctx=prev; }
+  return (PX.tex[key]=PIXI.Texture.from(c));
+}
+
+function pxBuildTextures(){
+  /* soft radial — the GPU equivalent of glowSprite(), tinted per use */
+  bakeTex('glow',128,128,()=>{
+    const g=ctx.createRadialGradient(0,0,0,0,0,64);
+    g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g; ctx.fillRect(-64,-64,128,128);
+  });
+  /* crisp square — particles */
+  bakeTex('dot',8,8,()=>{ ctx.fillStyle='#fff'; ctx.fillRect(-4,-4,8,8); });
+  /* crisp disc — projectile cores */
+  bakeTex('disc',32,32,()=>{ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,15,0,7); ctx.fill(); });
+  /* missiles: baked straight from the 2D draw code, both level tints */
+  for(const hi of [0,1]){
+    bakeTex('missile'+hi,40,16,()=>{
+      ctx.fillStyle='#e8edf4'; ctx.fillRect(-8,-3,14,6);
+      ctx.fillStyle=hi?'#c49bff':'#ff8c3b';
+      ctx.beginPath(); ctx.moveTo(6,-3); ctx.lineTo(12,0); ctx.lineTo(6,3); ctx.fill();
+      ctx.fillStyle='rgba(255,180,60,.9)'; ctx.fillRect(-14,-2,6,4);
+    });
+  }
+}
+
+async function pxBoot(){
+  if(PX.booting || PX.ready || PX.failed) return;
+  PX.booting=true;
+  try{
+    if(typeof PIXI==='undefined') throw new Error('pixi not loaded');
+    const app=new PIXI.Application();
+    await app.init({ canvas:document.getElementById('pxc'), backgroundAlpha:0,
+      antialias:true, resolution:DPR, autoDensity:true, width:W, height:H, autoStart:false });
+    PX.app=app;
+    pxBuildTextures();
+    try{
+      PIXI.BitmapFont.install({ name:'pxcombat',
+        style:{ fontFamily:'Consolas, Courier New, monospace', fontSize:36, fontWeight:'bold', fill:0xffffff },
+        chars:[['A','Z'],['a','z'],['0','9'],' +-.,:/×⬆⚠✦'] });
+      PX.fontReady=true;
+    }catch(e){ PX.fontReady=false; }
+
+    PX.world=new PIXI.Container();
+    /* bright things get a blurred additive copy — this is the bloom */
+    /* the blend mode must live on the FILTER: when a container is filtered, v8
+       composites the filtered output with the filter's blendMode, so setting it on
+       the container alone would silently alpha-blend the glows instead of adding light. */
+    PX.bloom=new PIXI.Container();
+    PX.bloom.filters=[new PIXI.BlurFilter({ strength:3, quality:2, blendMode:'add' })];
+    PX.lines=new PIXI.Graphics();
+    PX.crisp=new PIXI.Container();
+    PX.text=new PIXI.Container();
+    PX.world.addChild(PX.bloom, PX.lines, PX.crisp, PX.text);
+    app.stage.addChild(PX.world);
+
+    PX.res=DPR;
+    PX.ready=true; PX.failed=false;
+    /* the user may have toggled the layer off while init was still awaiting */
+    if(PX.on){
+      document.body.classList.add('gpu');
+      MAX_PARTS=PX_GPU_CAP;
+      toast('⚡ GPU FX LAYER ONLINE — '+app.renderer.name.toUpperCase(), '#9fe8ff');
+    }
+  }catch(e){
+    PX.failed=true; document.body.classList.remove('gpu'); MAX_PARTS=PX_SOFT_CAP;
+    toast('GPU FX UNAVAILABLE — USING 2D RENDERER', '#ff8888');
+  }
+  PX.booting=false;
+  pxLabel();
+}
+
+/* ---- sprite pooling: reuse display objects across frames, never allocate in the loop ---- */
+function pxGet(key, layer, make){
+  const p = PX.pools[key] || (PX.pools[key]={list:[], n:0, layer});
+  let o = p.list[p.n];
+  if(!o){ o = make(); p.list.push(o); layer.addChild(o); }
+  p.n++; o.visible=true;
+  return o;
+}
+function pxResetPools(){ for(const k in PX.pools){ const p=PX.pools[k];
+  for(let i=p.n;i<p.list.length;i++) p.list[i].visible=false; p.n=0; } }
+
+const pxHex = c => {
+  if(typeof c==='number') return c;
+  if(c[0]==='#') return parseInt(c.slice(1,7),16);
+  const m=c.match(/[\d.]+/g);                            // rgba(...) from particle colours
+  return m ? ((+m[0]&255)<<16)|((+m[1]&255)<<8)|(+m[2]&255) : 0xffffff;
+};
+const pxAlphaOf = c => { if(typeof c!=='string') return 1;
+  const m=c.match(/rgba\([^)]*,\s*([\d.]+)\s*\)/); return m?+m[1]:1; };
+
+function pxGlow(x,y,r,col,alpha){
+  const s=pxGet('glow',PX.bloom,()=>{ const sp=new PIXI.Sprite(PX.tex.glow); sp.anchor.set(.5); return sp; });
+  s.position.set(x,y); s.scale.set(Math.max(.01, r/64));
+  s.tint=pxHex(col); s.alpha=alpha;
+}
+function pxDot(x,y,size,col,alpha,rot){
+  const s=pxGet('dot',PX.crisp,()=>{ const sp=new PIXI.Sprite(PX.tex.dot); sp.anchor.set(.5); return sp; });
+  s.position.set(x,y); s.scale.set(Math.max(.01,size/8)); s.rotation=rot||0;
+  s.tint=pxHex(col); s.alpha=alpha;
+}
+function pxDisc(x,y,r,col,alpha){
+  const s=pxGet('disc',PX.crisp,()=>{ const sp=new PIXI.Sprite(PX.tex.disc); sp.anchor.set(.5); return sp; });
+  s.position.set(x,y); s.scale.set(Math.max(.01,r/15)); s.tint=pxHex(col); s.alpha=alpha;
+}
+
+/* ---- the effects band, mirroring the 2D renderer's order ---- */
+function pxDraw(){
+  const app=PX.app; if(!app) return;
+  const zv=ZV||1;
+  /* follow window resizes and device-pixel-ratio changes (browser zoom, moving the
+     window to a display of a different density) so the layer never goes soft */
+  if(app.renderer.width!==W || app.renderer.height!==H || PX.res!==DPR){
+    app.renderer.resolution=DPR; PX.res=DPR; app.renderer.resize(W,H);
+  }
+  pxResetPools();
+  PX.lines.clear();
+  /* no world on screen (menu, hangar, summary) — present an empty transparent frame */
+  if(!player || (state!=='play' && state!=='draft' && state!=='pause' && state!=='over')){
+    app.render(); return;
+  }
+  PX.world.position.set(camX, camY);
+  PX.world.scale.set(zv);
+
+  /* player bullets: additive glow + tracer/trail + white core */
+  for(const b of bullets){
+    const p=project(b.x,b.y); if(!p) continue;
+    const warm = !(b.col==='#4be0e8'||b.col==='#d8fbff');
+    pxGlow(p.x,p.y, b.r*(3.5+(b.lvl||1)*.4)*p.s, warm?'#ffd23b':'#4be0e8', .3+(b.lvl||1)*.03);
+    if(b.trail||b.tracer){
+      const tl=b.trail?.045:(.02+(b.lvl||1)*.004);
+      const p2=project(b.x-b.vx*tl, b.y-b.vy*tl);
+      if(p2){
+        PX.lines.moveTo(p2.x,p2.y).lineTo(p.x,p.y)
+          .stroke({ width:((b.trail?3.5:2.5)+(b.lvl||1)*.3)*p.s, color:pxHex(b.col==='#fff2b0'?'#ffd23b':b.col), alpha:.75, cap:'round' });
+      }
+    }
+    pxDisc(p.x,p.y, b.r*.55*p.s, '#ffffff', 1);
+  }
+  /* missiles */
+  for(const m of missiles){
+    const p=project(m.x,m.y); if(!p) continue;
+    const s=pxGet('msl'+(m.lvl>=4?1:0), PX.crisp, ()=>{
+      const sp=new PIXI.Sprite(PX.tex['missile'+(m.lvl>=4?1:0)]); sp.anchor.set(.5); return sp; });
+    s.position.set(p.x,p.y); s.rotation=Math.atan2(m.vy,m.vx); s.scale.set(p.s); s.alpha=1; s.tint=0xffffff;
+  }
+  /* enemy fire — always red for readability */
+  for(const b of ebullets){
+    const p=project(b.x,b.y); if(!p) continue;
+    const rc = b.slow ? '#ff5a7a' : '#ff2b2b';
+    pxGlow(p.x,p.y, b.r*3.8*p.s, rc, .5);
+    pxDisc(p.x,p.y, b.r*p.s, rc, 1);
+    pxDisc(p.x,p.y, b.r*.42*p.s, '#ffebeb', .9);
+  }
+  /* prism lance beams */
+  for(const bm of beams){
+    const pa=project(bm.x,bm.y), pb=project(bm.x+bm.dx*bm.len, bm.y+bm.dy*bm.len);
+    if(!pa||!pb) continue;
+    const al=bm.ttl/.18;
+    PX.lines.moveTo(pa.x,pa.y).lineTo(pb.x,pb.y).stroke({width:bm.w, color:0x78f0ff, alpha:.45*al, cap:'round'});
+    PX.lines.moveTo(pa.x,pa.y).lineTo(pb.x,pb.y).stroke({width:Math.max(2,bm.w*.3), color:0xffffff, alpha:.9*al, cap:'round'});
+    pxGlow((pa.x+pb.x)/2,(pa.y+pb.y)/2, bm.len*.5, '#78f0ff', .28*al);
+  }
+  /* tesla arcs — jagged polylines */
+  for(const a of arcs){
+    const alpha=Math.min(1,a.ttl*6);
+    for(let i=0;i<a.pts.length-1;i++){
+      const pa=project(a.pts[i][0],a.pts[i][1]), pb=project(a.pts[i+1][0],a.pts[i+1][1]);
+      if(!pa||!pb) continue;
+      PX.lines.moveTo(pa.x,pa.y);
+      const segs=5;
+      for(let sg=1;sg<=segs;sg++){
+        const t=sg/segs, j=(sg<segs?1:0);
+        PX.lines.lineTo(pa.x+(pb.x-pa.x)*t+rand(-9,9)*j, pa.y+(pb.y-pa.y)*t+rand(-9,9)*j);
+      }
+      PX.lines.stroke({width:a.w||2.5, color:0x8cdcff, alpha});
+      pxGlow((pa.x+pb.x)/2,(pa.y+pb.y)/2, 40, '#8cdcff', .3*alpha);
+    }
+  }
+  /* expanding shock rings */
+  for(const r of rings){
+    const p=project(r.x,r.y); if(!p) continue;
+    const prog=1-r.ttl/r.mt, rad=(r.r+(r.mr-r.r)*prog)*p.s;
+    PX.lines.circle(p.x,p.y,rad).stroke({width:3*(1-prog)+1, color:pxHex(r.col), alpha:.7*(1-prog)});
+    pxGlow(p.x,p.y, rad*1.1, r.col, .16*(1-prog));
+  }
+  /* particles — one shared texture, so the whole field batches into few draw calls */
+  for(const p of parts){
+    const q=project(p.x,p.y); if(!q) continue;
+    const a=Math.min(1,p.ttl*3)*pxAlphaOf(p.col);
+    pxDot(q.x,q.y, p.r*q.s, p.col, a);
+  }
+  /* combat text */
+  if(PX.fontReady){
+    const fscale=Math.min(2.2,1/zv);
+    for(const f of floats){
+      const q=project(f.x,f.y); if(!q) continue;
+      const t=pxGet('float',PX.text,()=>{
+        const bt=new PIXI.BitmapText({text:'',style:{fontFamily:'pxcombat',fontSize:36}});
+        bt.anchor=0.5; return bt; });
+      t.text=f.txt;
+      t.style.fontSize=(f.big?17:13)*fscale;
+      t.position.set(q.x,q.y);
+      t.tint=pxHex(f.col); t.alpha=Math.min(1,f.ttl*2.5);
+    }
+  }
+
+  app.render();
+}
+
+function pxLabel(){
+  const b=document.getElementById('btnGpu'); if(!b) return;
+  b.textContent = PX.failed ? 'GPU: N/A' : ('GPU FX: '+(PX.on?'ON':'OFF'));
+  b.style.opacity = PX.failed ? .4 : 1;
+}
+function pxToggle(){
+  if(PX.failed) return;
+  PX.on=!PX.on;
+  if(PX.on){
+    if(!PX.ready){ pxBoot(); }
+    else { document.body.classList.add('gpu'); MAX_PARTS=PX_GPU_CAP; }
+  } else {
+    document.body.classList.remove('gpu');
+    MAX_PARTS=PX_SOFT_CAP;
+    if(parts && parts.length>MAX_PARTS) parts.length=MAX_PARTS;
+  }
+  SAVE.gpuFx=PX.on; saveGame();
+  toast('GPU FX '+(PX.on?'ON':'OFF'), '#9fe8ff');
+  pxLabel();
+}
+
 /* ================= LOOP ================= */
 let last=performance.now();
 function loop(now){
@@ -4082,6 +4384,21 @@ function loop(now){
   pollPad();
   if(state==='play'){ update(dt); updateHUD(); }
   render();
+  if(pxActive()){
+    /* the effects layer is strictly cosmetic: if it ever throws, drop back to the
+       2D renderer rather than letting a render bug take the whole loop down */
+    try{ pxDraw(); }
+    catch(err){
+      /* revert on the first fault: a half-drawn effects layer would otherwise sit
+         frozen over a moving world, which reads as a hard freeze to the player */
+      PX.errN++; PX.failed=true; PX.on=false;
+      document.body.classList.remove('gpu'); MAX_PARTS=PX_SOFT_CAP;
+      if(parts && parts.length>MAX_PARTS) parts.length=MAX_PARTS;
+      pxLabel();
+      toast('GPU FX FAULT — REVERTED TO 2D RENDERER', '#ff8888');
+      console.error('pxDraw failed, reverted to the 2D renderer:', err);
+    }
+  }
   requestAnimationFrame(loop);
 }
 
@@ -4099,6 +4416,7 @@ document.getElementById('btnResume').onclick=e=>{ hide('pause'); e.target.blur()
 document.getElementById('btnMusicP').onclick=e=>{ e.target.blur(); musicToggle(); };
 /* reduced-FX mode — softer shake and flashes, no frame-glitch (accessibility) */
 function fxLabel(){ document.getElementById('btnFx').textContent='FX: '+(SAVE.fxLow?'REDUCED':'FULL'); }
+document.getElementById('btnGpu').onclick=e=>{ e.target.blur(); pxToggle(); };
 document.getElementById('btnFx').onclick=e=>{
   e.target.blur();
   SAVE.fxLow=!SAVE.fxLow; saveGame(); fxLabel();
@@ -4160,6 +4478,9 @@ addEventListener('pointerdown', function homeMusicOnce(){
 });
 
 buildHome();
+PX.on = SAVE.gpuFx;
+pxLabel();
+if(PX.on) pxBoot();   // async; the 2D renderer covers every frame until it is ready
 requestAnimationFrame(loop);
 </script>
 </body>
