@@ -160,6 +160,16 @@
   @keyframes toastin{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
   .toast.out{transition:.4s;opacity:0;transform:translateX(30px)}
 
+  /* first-run coach bar — one instruction at a time, bottom centre */
+  #tut{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);display:none;z-index:26;
+    pointer-events:none;border-radius:10px;padding:11px 22px;font-size:13px;letter-spacing:2px;
+    color:#fff6d8;border:1px solid rgba(255,210,59,.45);white-space:nowrap;max-width:94vw;
+    box-shadow:0 6px 26px rgba(0,0,0,.5)}
+  #tut.show{display:block;animation:tutin .3s ease-out}
+  #tut.hit{color:#7dff9a;border-color:rgba(125,255,154,.6)}
+  @keyframes tutin{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%)}}
+  body.touch #tut{font-size:10.5px;letter-spacing:1.5px;padding:8px 14px;bottom:76px}
+
   /* comms speech bubble */
   #comms{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);width:500px;border-radius:12px;padding:14px 18px;
     display:none;z-index:25;pointer-events:none}
@@ -280,6 +290,9 @@
   <button class="tbtn" id="btnShieldT">⬢</button>
   <button class="tbtn" id="btnDashT">≫</button>
 </div>
+
+<!-- FIRST-RUN COACH -->
+<div id="tut" class="glass mono"><span id="tutTxt"></span></div>
 
 <div id="comms" class="glass">
   <div class="row">
@@ -652,7 +665,7 @@ addEventListener('keydown', e=>{
   if(e.code==='KeyM' && (state==='play'||state==='draft'||state==='pause')) musicToggle();
   if(e.code==='KeyG' && !e.repeat) pxToggle();
   if(e.code==='KeyP' || e.code==='Escape'){
-    if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); }
+    if(state==='play'){ state='pause'; fillPauseStats(); show('pause'); musicDuck(0); tutHide(); }
     else if(state==='pause'){ hide('pause'); state='play'; musicDuck(1); }
   }
 });
@@ -754,6 +767,7 @@ if(typeof SAVE.bestRound!=='number') SAVE.bestRound=0;
 if(typeof SAVE.bestCombo!=='number') SAVE.bestCombo=0;
 if(typeof SAVE.fxLow!=='boolean') SAVE.fxLow=false;   // reduced screen shake / flashes
 if(typeof SAVE.gpuFx!=='boolean') SAVE.gpuFx=true;    // GPU (WebGL) effects layer
+if(typeof SAVE.taught!=='boolean') SAVE.taught=false; // first-run coach already completed
 if(typeof SAVE.zoomVal!=='number') SAVE.zoomVal = ({close:.72,med:.4,far:0}[SAVE.zoomMode]) ?? .4;
 function saveGame(){ try{ localStorage.setItem('steelharvest_save', JSON.stringify(SAVE)); }catch(e){} }
 
@@ -908,6 +922,48 @@ const comboMul=()=>combo>=30?1.75:combo>=15?1.5:combo>=8?1.3:combo>=4?1.15:1;
 /* juice timers: hit-stop on heavy kills, slow-mo on apex kills */
 let hitStopT=0, slowmoT=0;
 let camX=0, camY=0;   // live camera offset, shared with the GPU FX layer
+/* ---- first-run coach: one instruction at a time, each clearing itself once the
+   player actually performs the action. Runs on the first deployment only. ---- */
+let tutStep=0, tutHitT=0, tutOn=false;
+const tutDid={move:false, kill:false, salvage:false, dash:false, shield:false};
+const isTouch = ()=>document.body.classList.contains('touch');
+const TUT=[
+  { txt:()=>isTouch()?'DRAG ANYWHERE TO MOVE':'MOVE  —  W A S D',
+    done:()=>tutDid.move },
+  { txt:()=>isTouch()?'WEAPONS FIRE ON THEIR OWN WHILE YOU MOVE':'HOLD THE ARROW KEYS TO FIRE',
+    done:()=>tutDid.kill },
+  { txt:()=>'DRIVE OVER SALVAGE TO FILL THE BAR UP TOP',
+    done:()=>tutDid.salvage },
+  { txt:()=>isTouch()?'TAP  ≫  TO DASH OUT OF TROUBLE':'TAP  SHIFT  TO DASH OUT OF TROUBLE',
+    done:()=>tutDid.dash },
+  { txt:()=>isTouch()?'HURT?  TAP  ⬢  FOR A SHIELD':'HURT?  PRESS  SPACE  FOR A SHIELD',
+    done:()=>tutDid.shield, when:()=>player.hp<player.maxhp*.75 },
+];
+function tutShow(txt, hit){
+  const el=document.getElementById('tut'); if(!el) return;
+  document.getElementById('tutTxt').textContent=txt;
+  el.className='glass mono show'+(hit?' hit':'');
+}
+function tutHide(){ const el=document.getElementById('tut'); if(el) el.className='glass mono'; }
+function tutTick(dt){
+  if(!tutOn){ tutHide(); return; }
+  if(tutStep>=TUT.length){                       // all done — never teach again
+    tutOn=false; SAVE.taught=true; saveGame(); tutHide(); return;
+  }
+  if(tutHitT>0){                                 // brief green confirmation between steps
+    tutHitT-=dt;
+    if(tutHitT<=0){ tutStep++; }
+    return;
+  }
+  const step=TUT[tutStep];
+  if(step.when && !step.when()){ tutHide(); return; }   // not relevant yet (e.g. not hurt)
+  if(step.done()){
+    tutShow('✓  GOT IT', true); tutHitT=.9;
+    sfx(880,.12,'sine',.05,220);
+    return;
+  }
+  tutShow(step.txt(), false);
+}
 let dmgDirs=[];                     // incoming-damage direction pings (screen-edge arcs)
 const DASH_T=.16, DASH_CD=1.6, DASH_SPD=1350;   // thruster dash
 let roundMod=null;                               // themed-round modifier: 'horde' | 'elite' | null
@@ -1060,6 +1116,9 @@ function newGame(){
   extractPhase=null; extractT=0; liftT=0; missionFirstClear=false;
   draftPending=false; draftTimer=0; bossWarnT=0;
   combo=0; comboT=0; comboPop=0; comboBestRun=0; hitStopT=0; slowmoT=0; dmgDirs=[];
+  /* the coach runs once, on a player's very first deployment */
+  tutOn=!SAVE.taught; tutStep=0; tutHitT=0;
+  for(const k in tutDid) tutDid[k]=false;
   buildSlots();
   startRound();
 }
@@ -1191,7 +1250,7 @@ function activateShield(){
     return;
   }
   P.shieldCharges--;
-  P.shieldT=3;
+  P.shieldT=3; tutDid.shield=true;
   rings.push({x:P.x,y:P.y,r:10,mr:80,ttl:.35,mt:.35,col:'#4be0e8'});
   sfx(500,.3,'sine',.07,300);
 }
@@ -1204,7 +1263,7 @@ function activateDash(){
   if(!P.moving || (!dx && !dy)){ dx=P.aimx; dy=P.aimy; }
   const l=Math.hypot(dx,dy)||1;
   P.dashDx=dx/l; P.dashDy=dy/l;
-  P.dashT=DASH_T; P.dashCd=DASH_CD;
+  P.dashT=DASH_T; P.dashCd=DASH_CD; tutDid.dash=true;
   P.invuln=Math.max(P.invuln, DASH_T+.08);   // thruster i-frames
   rings.push({x:P.x,y:P.y,r:8,mr:54,ttl:.22,mt:.22,col:'#9fd8ff'});
   noiseHit(.12,.05,'bandpass',1400); sfx(240,.14,'sawtooth',.05,260);
@@ -1494,7 +1553,7 @@ function damageEnemy(e, amt, showNum, crit){
       col:crit?'#ff9d3b':'#ffe9b0', big:crit});
   }
   if(e.hp<=0 && !e.dead){
-    e.dead=true; kills++;
+    e.dead=true; kills++; tutDid.kill=true;
     combo++; comboT=COMBO_WINDOW; comboPop=.25;
     if(combo>comboBestRun) comboBestRun=combo;
     if(crit || e.type==='brute' || e.type==='bunker') hitStopT=Math.max(hitStopT,.05);   // heavy-kill hit-stop
@@ -1679,6 +1738,8 @@ function destroyMech(){
 
 function openSummary(){
   state='summary'; extractPhase=null;
+  tutOn=false; tutHide();
+  if(!SAVE.taught){ SAVE.taught=true; }   // finishing a mission counts as taught
   /* sweep up any salvage still on the field */
   let sweep=0;
   for(const s of cores){ sweep+=s.val; }
@@ -1715,6 +1776,7 @@ function openSummary(){
 
 function gameOver(){
   state='over';
+  tutOn=false; tutHide();
   document.getElementById('ovWorld').textContent = theme.name+' — ALL MECHS DESTROYED';
   document.getElementById('ovRound').textContent=round;
   document.getElementById('ovKills').textContent=kills;
@@ -1971,6 +2033,7 @@ function update(dt){
   flashT=Math.max(0,flashT-dt);
   bossWarnT=Math.max(0,bossWarnT-dt);
   comboPop=Math.max(0,comboPop-dt*2);
+  if(tutOn) tutTick(dt);
   if(comboT>0){ comboT-=dt; if(comboT<=0) combo=0; }   // streak window expired quietly
   for(const dd of dmgDirs) dd.ttl-=dt;
   dmgDirs=dmgDirs.filter(dd=>dd.ttl>0);
@@ -2062,6 +2125,7 @@ function update(dt){
     P.x+=mx/l*spd*dt; P.y+=my/l*spd*dt;
     P.walk+=dt*11;
     P.moving=true; P.mvx=mx/l; P.mvy=my/l;
+    tutDid.move=true;
   } else {
     P.moving=false;
     P.walk+=dt*2.2;                    // idle: slow breathing sway
@@ -2229,7 +2293,7 @@ function update(dt){
     else if(!scattering && d<130){ s.vx+=dv.x/d*750*dt; s.vy+=dv.y/d*750*dt; } // base pickup pull
     posWrap(s);
     if(!scattering && d<30){
-      s.dead=true;
+      s.dead=true; tutDid.salvage=true;
       gainXp(s.val);
       floats.push({x:s.x, y:s.y-14, txt:'+'+s.val, ttl:.45, col:s.type==='bolt'?'#e8edf4':'#ffae33'});
       sfx(s.type==='bolt'?1050:1300,.05,'sine',.03,rand(-100,150));
@@ -3877,6 +3941,7 @@ function drawDraft(n){
 }
 
 function openDraft(roundClear){
+  tutHide();
   draftRoundClear=!!roundClear;
   draftOpts=drawDraft(3);
   /* build fully maxed out? nothing left to offer — hand control straight back,
@@ -3925,7 +3990,11 @@ function takeDraft(o){
 
 /* ================= FX HELPERS ================= */
 let MAX_PARTS=650;     // hard cap — prevents slowdown death-spirals in heavy fights
+/* the GPU layer raised the particle budget, so actually spend it: blasts get
+   meaningfully denser when it is live, and fall back to the old counts when not */
+const fxMul = ()=>pxActive()? 2.2 : 1;
 function boom(x,y,col,n){
+  n=Math.round(n*fxMul());
   for(let i=0;i<n && parts.length<MAX_PARTS;i++){
     const a=rand(0,Math.PI*2), s=rand(60,320);
     parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,ttl:rand(.3,.8),col,r:rand(2,5)});
@@ -4441,7 +4510,7 @@ function refreshZoomBtns(){
   }
 }
 refreshZoomBtns();
-document.getElementById('btnAbort').onclick=()=>{ hide('pause'); state='menu'; document.getElementById('hud').style.display='none'; buildHome(); show('menu'); musicStart('home'); };
+document.getElementById('btnAbort').onclick=()=>{ tutOn=false; tutHide(); hide('pause'); state='menu'; document.getElementById('hud').style.display='none'; buildHome(); show('menu'); musicStart('home'); };
 document.getElementById('btnSumMissions').onclick=()=>{ hide('summary'); state='hangar'; buildHangar(); show('hangar'); musicStart('home'); };  // reselect your mech after each conquest
 document.getElementById('btnSumBase').onclick=()=>{ hide('summary'); state='menu'; buildHome(); show('menu'); musicStart('home'); };
 document.getElementById('btnHomeWorld').onclick=()=>{ hide('menu'); buildHomeWorld(); show('homeworld'); sfx(380,.15,'sine',.05,180); };
